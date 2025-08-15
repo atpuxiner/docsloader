@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=80.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+# project
+[project]
+name = "docsloader"
+description = "This is a documents loader."
+authors = [{ name = "axiner", email = "atpuxiner@163.com" }]
+urls = { Homepage = "https://github.com/atpuxiner/docsloader" }
+classifiers = [
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.11"
+license-files = ["LICENSE"]
+readme = "README.md"
+dynamic = [
+    "version",
+    "dependencies",
+]
+
+# tool
+[tool.setuptools.dynamic]
+version = { attr = "docsloader.__version__" }
+dependencies = { file = "requirements.txt" }
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "dist*",
+]
