@@ -2,7 +2,7 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader.txt import TxtLoader
+from docsloader.csv import CvsLoader
 
 logger = init_logger()
 
@@ -11,10 +11,10 @@ class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = "https://raw.githubusercontent.com/python/cpython/main/README.rst"
+        cls.path_or_url = r"C:\Users\atpux\Desktop\新建 XLSX 工作表.csv"
 
     async def asyncSetUp(self):
-        self.loader = TxtLoader(
+        self.loader = CvsLoader(
             path_or_url=self.path_or_url,
             is_rm_tmpfile=False,
         )

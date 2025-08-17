@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 async def download_to_tmpfile(
         url: str,
         suffix: str = None,
-        timeout=60,
+        timeout=120,
 ) -> str:
     """
     下载URL内容到临时文件
