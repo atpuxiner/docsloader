@@ -17,11 +17,13 @@ class BaseLoader:
             path_or_url: str,
             encoding: str = None,
             load_type: str = "basic",
+            metadata: dict = None,
             is_rm_tmpfile: bool = True
     ):
         self.path_or_url = path_or_url
         self.encoding = encoding
         self.load_type = load_type
+        self.metadata = metadata or {}
         self.is_rm_tmpfile = is_rm_tmpfile
         self._tmpfile = None
 

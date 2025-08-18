@@ -16,10 +16,13 @@ class CvsLoader(BaseLoader):
         columns = df.columns.tolist()
         try:
             for idx, row in df.iterrows():
+                self.metadata.update(
+                    idx=idx,
+                    columns=columns,
+                )
                 yield {
-                    "idx": idx,
                     "text": json.dumps(row.to_dict(), ensure_ascii=False),
-                    "columns": columns,
+                    "metadata": self.metadata,
                 }
         finally:
             await self.rm_tmpfile()

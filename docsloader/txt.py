@@ -15,8 +15,11 @@ class TxtLoader(BaseLoader):
             idx = 0
             async for line in f:
                 idx += 1
+                self.metadata.update(
+                    idx=idx,
+                )
                 yield {
-                    "idx": idx,
                     "text": line,
+                    "metadata": self.metadata,
                 }
         await self.rm_tmpfile()
