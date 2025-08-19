@@ -2,7 +2,7 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader.xlsx import XlsxLoader
+from docsloader import XlsxLoader
 
 logger = init_logger()
 
@@ -11,7 +11,7 @@ class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = r"C:\Users\atpux\Desktop\新建 XLSX 工作表.xlsx"
+        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.xlsx"
 
     async def asyncSetUp(self):
         self.loader = XlsxLoader(

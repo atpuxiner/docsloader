@@ -4,6 +4,7 @@
 - add@txt加载
 - add@csv加载
 - add@xlsx加载
+- add@docx加载
 
 ## v0.0.1
 - init@初始化项目

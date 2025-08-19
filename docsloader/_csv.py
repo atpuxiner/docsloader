@@ -21,6 +21,7 @@ class CvsLoader(BaseLoader):
                     columns=columns,
                 )
                 yield {
+                    "type": "text",
                     "text": json.dumps(row.to_dict(), ensure_ascii=False),
                     "metadata": self.metadata,
                 }

@@ -19,6 +19,7 @@ class TxtLoader(BaseLoader):
                     idx=idx,
                 )
                 yield {
+                    "type": "text",
                     "text": line,
                     "metadata": self.metadata,
                 }

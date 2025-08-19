@@ -2,7 +2,7 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader import CvsLoader
+from docsloader import DocxLoader
 
 logger = init_logger()
 
@@ -11,10 +11,10 @@ class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.csv"
+        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.docx"
 
     async def asyncSetUp(self):
-        self.loader = CvsLoader(
+        self.loader = DocxLoader(
             path_or_url=self.path_or_url,
             is_rm_tmpfile=False,
         )

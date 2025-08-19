@@ -2,7 +2,7 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader.txt import TxtLoader
+from docsloader import TxtLoader
 
 logger = init_logger()
 

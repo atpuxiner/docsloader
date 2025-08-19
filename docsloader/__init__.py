@@ -6,5 +6,15 @@
 @description
 @history
 """
+from ._txt import TxtLoader
+from ._csv import CvsLoader
+from ._xlsx import XlsxLoader
+from ._docx import DocxLoader
 
 __version__ = "0.0.2"
+__all__ = [
+    "TxtLoader",
+    "CvsLoader",
+    "XlsxLoader",
+    "DocxLoader",
+]
