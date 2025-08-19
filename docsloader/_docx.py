@@ -15,10 +15,9 @@ logger = logging.getLogger(__name__)
 class DocxLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[Dict[str, Any], None]:
-
         try:
             idx = 0
-            for item in self.extract_docx_content(tmpfile=await self.tmpfile):
+            for item in self.extract_by_python_docx(tmpfile=await self.tmpfile):
                 idx += 1
                 metadata = self.metadata.copy()
                 metadata.update({"idx": idx})
@@ -46,9 +45,9 @@ class DocxLoader(BaseLoader):
             await self.rm_tmpfile()
 
     @staticmethod
-    def extract_docx_content(tmpfile: str):
+    def extract_by_python_docx(tmpfile: str):
         doc = DocxDocument(tmpfile)
-
+        # media
         image_dir = Path(tmpfile + "_media")
         image_dir.mkdir(parents=True, exist_ok=True)
         image_map = {}  # relId -> local image path
@@ -66,7 +65,7 @@ class DocxLoader(BaseLoader):
                         image_counter += 1
         except Exception as e:
             logger.warning(f"extracting the image failed: {e}")
-
+        # body
         for element in doc.element.body:
             if element.tag.endswith('p'):
                 paragraph = Paragraph(element, doc)

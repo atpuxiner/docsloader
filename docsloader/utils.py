@@ -32,7 +32,7 @@ async def download_to_tmpfile(
                     raise ValueError(msg)
                 async with aiofiles.open(tmp_file, 'wb') as f:
                     async for chunk in response.content.iter_any():
-                        await f.write(chunk)
+                        await f.write(chunk)  # noqa
                 return str(tmp_file)
     except Exception as e:
         logger.error(e)
