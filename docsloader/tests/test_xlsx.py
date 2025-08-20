@@ -7,7 +7,7 @@ from docsloader import XlsxLoader
 logger = init_logger()
 
 
-class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
+class TestXlsxLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):

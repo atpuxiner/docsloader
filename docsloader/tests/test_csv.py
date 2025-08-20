@@ -7,7 +7,7 @@ from docsloader import CvsLoader
 logger = init_logger()
 
 
-class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
+class TestCsvLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):

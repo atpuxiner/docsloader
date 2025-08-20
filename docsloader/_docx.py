@@ -18,7 +18,6 @@ class DocxLoader(BaseLoader):
         try:
             idx = 0
             for item in self.extract_by_python_docx(tmpfile=await self.tmpfile):
-                idx += 1
                 metadata = self.metadata.copy()
                 metadata.update({"idx": idx})
                 if item['type'] == 'table':
@@ -41,6 +40,7 @@ class DocxLoader(BaseLoader):
                         "text": item.get("text", ""),
                         "metadata": metadata,
                     }
+                idx += 1
         finally:
             await self.rm_tmpfile()
 
@@ -64,7 +64,7 @@ class DocxLoader(BaseLoader):
                         image_map[file_info.filename] = str(local_image_path)
                         image_counter += 1
         except Exception as e:
-            logger.warning(f"extracting the image failed: {e}")
+            logger.error(f"extracting the image failed: {e}")
         # body
         for element in doc.element.body:
             if element.tag.endswith('p'):
@@ -105,7 +105,7 @@ class DocxLoader(BaseLoader):
                             if zip_image_path in image_map:
                                 images_in_para.append(image_map[zip_image_path])
                         except KeyError:
-                            logger.warning(f"Image not found for relId: {rel_id}")
+                            logger.error(f"Image not found for relId: {rel_id}")
                 if images_in_para:
                     for image_path in images_in_para:
                         yield {

@@ -14,7 +14,6 @@ class TxtLoader(BaseLoader):
         async with aiofiles.open(await self.tmpfile, mode='r', encoding=self.encoding) as f:
             idx = 0
             async for line in f:
-                idx += 1
                 self.metadata.update(
                     idx=idx,
                 )
@@ -23,4 +22,5 @@ class TxtLoader(BaseLoader):
                     "text": line,
                     "metadata": self.metadata,
                 }
+                idx += 1
         await self.rm_tmpfile()
