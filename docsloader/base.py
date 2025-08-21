@@ -1,13 +1,23 @@
 import logging
 import os
-from typing import AsyncGenerator
+import shutil
+from typing import AsyncGenerator, Any
 from urllib.parse import urlparse
 
+from pydantic import BaseModel
 from toollib.codec import detect_encoding
 
 from docsloader.utils import download_to_tmpfile
 
 logger = logging.getLogger(__name__)
+
+
+class DocsData(BaseModel):
+    """文档数据"""
+    type: str | None = "text"
+    text: str | None = None
+    data: Any = None
+    metadata: dict | None = None
 
 
 class BaseLoader:
@@ -27,7 +37,7 @@ class BaseLoader:
         self.is_rm_tmpfile = is_rm_tmpfile
         self._tmpfile = None
 
-    async def load(self, *args, **kwargs) -> AsyncGenerator[dict, None]:
+    async def load(self, *args, **kwargs) -> AsyncGenerator[DocsData, None]:
         """加载"""
         load_type = kwargs.get("load_type") or self.load_type
         logger.info(f"load type: {load_type}")
@@ -56,3 +66,9 @@ class BaseLoader:
         if self.is_rm_tmpfile:
             if self._tmpfile and os.path.exists(self._tmpfile):
                 os.remove(self._tmpfile)
+
+    @staticmethod
+    async def rm_tmpdir(tmpdir: str):
+        """删除临时目录"""
+        if os.path.isdir(tmpdir):
+            shutil.rmtree(tmpdir)

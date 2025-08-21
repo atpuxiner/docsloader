@@ -1,5 +1,5 @@
 import logging
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator
 import zipfile
 from pathlib import Path
 
@@ -7,39 +7,28 @@ from docx import Document as DocxDocument
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
-from docsloader.base import BaseLoader
+from docsloader.base import BaseLoader, DocsData
 
 logger = logging.getLogger(__name__)
 
 
 class DocxLoader(BaseLoader):
 
-    async def load_by_basic(self) -> AsyncGenerator[Dict[str, Any], None]:
+    async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         try:
             idx = 0
             for item in self.extract_by_python_docx(tmpfile=await self.tmpfile):
                 metadata = self.metadata.copy()
-                metadata.update({"idx": idx})
-                if item['type'] == 'table':
-                    yield {
-                        "type": "table",
-                        "text": item.get("text", ""),
-                        "data": item.get("data"),
-                        "metadata": metadata,
-                    }
-                elif item['type'] == 'image':
-                    yield {
-                        "type": "image",
-                        "text": item.get("text", ""),
-                        "path": item.get("path"),
-                        "metadata": metadata,
-                    }
-                else:
-                    yield {
-                        "type": "text",
-                        "text": item.get("text", ""),
-                        "metadata": metadata,
-                    }
+                metadata.update(
+                    idx=idx,
+                    image_path=item.get("image_path")
+                )
+                yield DocsData(
+                    type=item.get("type"),
+                    text=item.get("text"),
+                    data=item.get("data"),
+                    metadata=metadata,
+                )
                 idx += 1
         finally:
             await self.rm_tmpfile()
@@ -47,13 +36,13 @@ class DocxLoader(BaseLoader):
     @staticmethod
     def extract_by_python_docx(tmpfile: str):
         doc = DocxDocument(tmpfile)
-        # media
-        image_dir = Path(tmpfile + "_media")
+        # images
+        image_dir = Path(tmpfile + ".images")
         image_dir.mkdir(parents=True, exist_ok=True)
         image_map = {}  # relId -> local image path
         image_counter = 1
         try:
-            with zipfile.ZipFile(tmpfile, 'r') as z:
+            with zipfile.ZipFile(tmpfile, mode='r') as z:
                 for file_info in z.infolist():
                     if file_info.filename.startswith('word/media/'):
                         ext = Path(file_info.filename).suffix
@@ -63,9 +52,11 @@ class DocxLoader(BaseLoader):
                         # relId map
                         image_map[file_info.filename] = str(local_image_path)
                         image_counter += 1
+            if not image_map and image_dir.is_dir():
+                image_dir.rmdir()
         except Exception as e:
             logger.error(f"extracting the image failed: {e}")
-        # body
+        # element
         for element in doc.element.body:
             if element.tag.endswith('p'):
                 paragraph = Paragraph(element, doc)
@@ -110,8 +101,7 @@ class DocxLoader(BaseLoader):
                     for image_path in images_in_para:
                         yield {
                             'type': 'image',
-                            'text': '',
-                            'path': image_path
+                            'image_path': image_path
                         }
                 elif text:
                     yield {
@@ -129,6 +119,5 @@ class DocxLoader(BaseLoader):
                     data.append(row_data)
                 yield {
                     'type': 'table',
-                    'text': '',
                     'data': data
                 }

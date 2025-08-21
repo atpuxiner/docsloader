@@ -1,59 +1,53 @@
 import logging
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator
 
 import fitz
 import numpy as np
 
-from docsloader.base import BaseLoader
+from docsloader.base import BaseLoader, DocsData
 
 logger = logging.getLogger(__name__)
 
 
 class PdfLoader(BaseLoader):
-    async def load_by_basic(self) -> AsyncGenerator[Dict[str, Any], None]:
+
+    async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         try:
             idx = 0
             for item in self.extract_by_pymupdf(tmpfile=await self.tmpfile):
                 metadata = self.metadata.copy()
-                metadata.update({"idx": idx})
-                if item['type'] == 'table':
-                    yield {
-                        "type": "table",
-                        "text": item.get("text", ""),
-                        "data": item.get("data"),
-                        "metadata": metadata,
-                    }
-                elif item['type'] == 'image':
-                    yield {
-                        "type": "image",
-                        "text": item.get("text", ""),
-                        "path": item.get("path"),
-                        "metadata": metadata,
-                    }
-                else:  # 默认认为是文本类型
-                    yield {
-                        "type": "text",
-                        "text": item.get("text", ""),
-                        "metadata": metadata,
-                    }
+                metadata.update(
+                    idx=idx,
+                    page=item.get("page"),
+                    page_total=item.get("page_total"),
+                    page_path=item.get("page_path"),
+                    image_path=item.get("image_path"),
+                )
+                yield DocsData(
+                    type=item.get("type"),
+                    text=item.get("text"),
+                    data=item.get("data"),
+                    metadata=metadata,
+                )
                 idx += 1
         finally:
             await self.rm_tmpfile()
 
     def extract_by_pymupdf(self, tmpfile: str, dpi: int = 300):
         doc = fitz.open(tmpfile)
-        image_dir = Path(tmpfile + "_media")
+        image_dir = Path(tmpfile + ".images")
         image_dir.mkdir(parents=True, exist_ok=True)
-        for page_idx in range(len(doc)):
+        page_total = len(doc)
+        for page_idx in range(page_total):
             page = doc.load_page(page_idx)
             page_pix = page.get_pixmap(dpi=dpi, alpha=False)
             ext = "png" if page_pix.alpha else "jpg"
-            page_image_path = image_dir / f"image_{page_idx}.{ext}"
+            page_path = image_dir / f"image_{page_idx}.{ext}"
             try:
-                page_pix.save(str(page_image_path))
+                page_pix.save(str(page_path))
             except Exception as e:
-                page_image_path = None
+                page_path = None
                 logger.error(f"Failed to save image: {e}")
             if self._is_two_column(page):
                 page_text = self._extract_adaptive_columns(page)
@@ -62,10 +56,12 @@ class PdfLoader(BaseLoader):
             if page_text.strip():
                 yield {
                     "type": "text",
-                    "text": page_text.strip(),
-                    "path": str(page_image_path),
+                    "text": page_text,
+                    "page": page_idx + 1,
+                    "page_total": page_total,
+                    "page_path": str(page_path),
                 }
-            # 内部图像
+            # image
             for img_idx, img in enumerate(page.get_images(full=True)):
                 xref = img[0]
                 pix = fitz.Pixmap(doc, xref)
@@ -75,9 +71,10 @@ class PdfLoader(BaseLoader):
                     pix.save(str(image_path))
                     yield {
                         "type": "image",
-                        "text": "",
-                        "path": str(image_path),
-                        "page_path": str(page_image_path),
+                        "page": page_idx + 1,
+                        "page_total": page_total,
+                        "page_path": str(page_path),
+                        "image_path": str(image_path),
                     }
                 except Exception as e:
                     logger.error(f"Failed to save image: {e}")

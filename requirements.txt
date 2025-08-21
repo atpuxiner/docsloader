@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 # Python>=3.11
 toollib==1.7.4
-# txt csv
+pydantic==2.11.7
+# txt csv xlsx
 aiofiles==24.1.0
 aiohttp==3.12.15
-# docx
+pandas==2.3.1
+openpyxl==3.1.5
+# docx pdf
 python-docx==1.2.0
-# pdf
 pymupdf==1.26.3
