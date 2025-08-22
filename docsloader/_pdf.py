@@ -13,26 +13,23 @@ logger = logging.getLogger(__name__)
 class PdfLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        try:
-            idx = 0
-            for item in self.extract_by_pymupdf(tmpfile=await self.tmpfile):
-                metadata = self.metadata.copy()
-                metadata.update(
-                    idx=idx,
-                    page=item.get("page"),
-                    page_total=item.get("page_total"),
-                    page_path=item.get("page_path"),
-                    image_path=item.get("image_path"),
-                )
-                yield DocsData(
-                    type=item.get("type"),
-                    text=item.get("text"),
-                    data=item.get("data"),
-                    metadata=metadata,
-                )
-                idx += 1
-        finally:
-            await self.rm_tmpfile()
+        idx = 0
+        for item in self.extract_by_pymupdf(tmpfile=self.tmpfile):
+            metadata = self.metadata.copy()
+            metadata.update(
+                page=item.get("page"),
+                page_total=item.get("page_total"),
+                page_path=item.get("page_path"),
+                image_path=item.get("image_path"),
+            )
+            yield DocsData(
+                idx=idx,
+                type=item.get("type"),
+                text=item.get("text"),
+                data=item.get("data"),
+                metadata=metadata,
+            )
+            idx += 1
 
     def extract_by_pymupdf(self, tmpfile: str, dpi: int = 300):
         doc = fitz.open(tmpfile)

@@ -5,8 +5,8 @@ pydantic==2.11.7
 # txt csv xlsx
 aiofiles==24.1.0
 aiohttp==3.12.15
-pandas==2.3.1
 openpyxl==3.1.5
+xlrd==2.0.2
 # docx pdf
 python-docx==1.2.0
 pymupdf==1.26.3

@@ -11,7 +11,7 @@ class TestTxtLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = "https://raw.githubusercontent.com/python/cpython/main/README.rst"
+        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.txt"
 
     async def asyncSetUp(self):
         self.loader = TxtLoader(

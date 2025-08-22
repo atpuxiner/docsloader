@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 class DocsData(BaseModel):
     """文档数据"""
-    type: str | None = "text"
+    idx: int | None = None
+    type: str | None = None
     text: str | None = None
     data: Any = None
     metadata: dict | None = None
@@ -35,37 +36,48 @@ class BaseLoader:
         self.load_type = load_type
         self.metadata = metadata or {}
         self.is_rm_tmpfile = is_rm_tmpfile
-        self._tmpfile = None
+        self.tmpfile = None
 
     async def load(self, *args, **kwargs) -> AsyncGenerator[DocsData, None]:
         """加载"""
         load_type = kwargs.get("load_type") or self.load_type
         logger.info(f"load type: {load_type}")
         if method := getattr(self, f"load_by_{load_type}", None):
-            async for item in method(*args, **kwargs):
-                yield item
+            try:
+                tmpfile = await self.get_tmpfile()
+                if await self.is_file_empty(tmpfile):
+                    logger.warning(f"文件为空({self.path_or_url}): {tmpfile}")
+                    yield DocsData(type="empty")
+                    return
+                async for item in method(*args, **kwargs):
+                    yield item
+            finally:
+                await self.rm_tmpfile()
         else:
             raise ValueError(f"Unsupported load type: {load_type}")
 
-    @property
-    async def tmpfile(self):
-        """临时文件"""
-        if self._tmpfile:
-            return self._tmpfile
-        self._tmpfile = self.path_or_url
+    async def get_tmpfile(self):
+        """获取临时文件"""
+        if self.tmpfile:
+            return self.tmpfile
+        self.tmpfile = self.path_or_url
         result = urlparse(self.path_or_url)
         if all([result.scheme, result.netloc]):  # url
             logger.info(f"downloading {self.path_or_url} to tmpfile")
-            self._tmpfile = await download_to_tmpfile(self.path_or_url)
+            self.tmpfile = await download_to_tmpfile(self.path_or_url)
         if not self.encoding:
-            self.encoding = detect_encoding(data_or_path=self._tmpfile)
-        return self._tmpfile
+            self.encoding = detect_encoding(data_or_path=self.tmpfile)
+        return self.tmpfile
+
+    @staticmethod
+    async def is_file_empty(file_path):
+        return os.path.getsize(file_path) == 0
 
     async def rm_tmpfile(self):
         """删除临时文件"""
         if self.is_rm_tmpfile:
-            if self._tmpfile and os.path.exists(self._tmpfile):
-                os.remove(self._tmpfile)
+            if self.tmpfile and os.path.exists(self.tmpfile):
+                os.remove(self.tmpfile)
 
     @staticmethod
     async def rm_tmpdir(tmpdir: str):
