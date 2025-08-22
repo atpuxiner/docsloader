@@ -2,6 +2,7 @@
 
 ## v0.0.2
 - add@txt加载
+- add@md加载
 - add@csv加载
 - add@xlsx加载
 - add@docx加载
