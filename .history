@@ -7,6 +7,7 @@
 - add@xlsx加载
 - add@docx加载
 - add@pdf加载
+- add@pptx加载
 
 ## v0.0.1
 - init@初始化项目

@@ -8,6 +8,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from docsloader.base import BaseLoader, DocsData
+from docsloader.utils import format_table, format_image
 
 logger = logging.getLogger(__name__)
 
@@ -15,23 +16,16 @@ logger = logging.getLogger(__name__)
 class DocxLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        idx = 0
         for item in self.extract_by_python_docx(tmpfile=self.tmpfile):
-            metadata = self.metadata.copy()
-            metadata.update(
-                image_path=item.get("image_path")
-            )
             yield DocsData(
-                idx=idx,
                 type=item.get("type"),
                 text=item.get("text"),
                 data=item.get("data"),
-                metadata=metadata,
+                metadata=self.metadata,
             )
-            idx += 1
 
     @staticmethod
-    def extract_by_python_docx(tmpfile: str):
+    def extract_by_python_docx(tmpfile: str) -> dict:
         doc = DocxDocument(tmpfile)
         # images
         image_dir = Path(tmpfile + ".images")
@@ -43,11 +37,11 @@ class DocxLoader(BaseLoader):
                 for file_info in z.infolist():
                     if file_info.filename.startswith("word/media/"):
                         ext = Path(file_info.filename).suffix
-                        local_image_path = image_dir / f"image_{image_counter}{ext}"
-                        with open(local_image_path, "wb") as f:
+                        image_path = image_dir / f"image_{image_counter}{ext}"
+                        with open(image_path, "wb") as f:
                             f.write(z.read(file_info.filename))
                         # relId map
-                        image_map[file_info.filename] = str(local_image_path)
+                        image_map[file_info.filename] = str(image_path)
                         image_counter += 1
             if not image_map and image_dir.is_dir():
                 image_dir.rmdir()
@@ -57,7 +51,7 @@ class DocxLoader(BaseLoader):
         for element in doc.element.body:
             if element.tag.endswith("p"):
                 paragraph = Paragraph(element, doc)
-                text = paragraph.text.strip()
+                para_text = paragraph.text.strip()
                 drawing_nodes = element.xpath(".//wp:docPr/parent::wp:anchor|.//wp:docPr/parent::wp:inline")
                 images_in_para = []
                 for node in drawing_nodes:
@@ -98,23 +92,25 @@ class DocxLoader(BaseLoader):
                     for image_path in images_in_para:
                         yield {
                             "type": "image",
-                            "image_path": image_path
+                            "text": format_image(image_path),
+                            "data": image_path
                         }
-                elif text:
+                elif para_text:
                     yield {
-                        "type": "paragraph",
-                        "text": text
+                        "type": "text",
+                        "text": para_text
                     }
             elif element.tag.endswith("tbl"):
                 table = Table(element, doc)
-                data = []
+                table_data = []
                 for row in table.rows:
                     row_data = []
                     for cell in row.cells:
                         cell_text = "".join(p.text for p in cell.paragraphs).strip()
                         row_data.append(cell_text)
-                    data.append(row_data)
+                    table_data.append(row_data)
                 yield {
                     "type": "table",
-                    "data": data
+                    "text": format_table(table_data),
+                    "data": table_data
                 }

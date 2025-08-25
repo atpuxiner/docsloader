@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-from typing import AsyncGenerator, Any
+from typing import AsyncGenerator, Any, Literal
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -26,12 +26,25 @@ class BaseLoader:
     def __init__(
             self,
             path_or_url: str,
+            suffix: Literal[
+                ".txt",
+                ".md",
+                ".csv",
+                ".xlsx",
+                ".xls",
+                ".docx",
+                ".doc",
+                ".pdf",
+                ".pptx",
+                ".ppt",
+            ] = None,
             encoding: str = None,
             load_type: str = "basic",
             metadata: dict = None,
             is_rm_tmpfile: bool = True
     ):
         self.path_or_url = path_or_url
+        self.suffix = suffix
         self.encoding = encoding
         self.load_type = load_type
         self.metadata = metadata or {}
@@ -44,33 +57,37 @@ class BaseLoader:
         logger.info(f"load type: {load_type}")
         if method := getattr(self, f"load_by_{load_type}", None):
             try:
-                tmpfile = await self.get_tmpfile()
-                if await self.is_file_empty(tmpfile):
-                    logger.warning(f"文件为空({self.path_or_url}): {tmpfile}")
+                await self.setup()
+                if await self.is_file_empty(self.tmpfile):
+                    logger.warning(f"File is empty({self.path_or_url}): {self.tmpfile}")
                     yield DocsData(type="empty")
                     return
+                idx = 0
                 async for item in method(*args, **kwargs):
+                    item.idx = idx
                     yield item
+                    idx += 1
             finally:
                 await self.rm_tmpfile()
         else:
             raise ValueError(f"Unsupported load type: {load_type}")
 
-    async def get_tmpfile(self):
-        """获取临时文件"""
-        if self.tmpfile:
-            return self.tmpfile
+    async def setup(self):
+        """初始化"""
+        if self.tmpfile is not None:
+            return
         self.tmpfile = self.path_or_url
+        if not self.suffix:
+            _, self.suffix = os.path.splitext(self.tmpfile)
         result = urlparse(self.path_or_url)
         if all([result.scheme, result.netloc]):  # url
             logger.info(f"downloading {self.path_or_url} to tmpfile")
-            self.tmpfile = await download_to_tmpfile(self.path_or_url)
+            self.tmpfile = await download_to_tmpfile(url=self.path_or_url, suffix=self.suffix)
         if not self.encoding:
             self.encoding = detect_encoding(data_or_path=self.tmpfile)
-        return self.tmpfile
 
     @staticmethod
-    async def is_file_empty(file_path):
+    async def is_file_empty(file_path) -> bool:
         return os.path.getsize(file_path) == 0
 
     async def rm_tmpfile(self):

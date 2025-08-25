@@ -6,6 +6,7 @@ import xlrd
 from openpyxl.reader.excel import load_workbook
 
 from docsloader.base import BaseLoader, DocsData
+from docsloader.utils import format_table
 
 logger = logging.getLogger(__name__)
 
@@ -22,26 +23,28 @@ class XlsxLoader(BaseLoader):
                 logger.info(f"Processing sheet: {sheet_name}")
                 rows = ws.iter_rows(values_only=True)
                 try:
-                    header = next(rows)
+                    header = list(next(rows))
                 except StopIteration:
                     header = []
                     rows = []
-                idx = 0
                 self.metadata.update(
                     header=header,
                     sheet_name=sheet_name,
                 )
-                for idx, row in enumerate(rows):
+                has_value = False
+                for row in rows:
+                    has_value = True
+                    row = list(row)
                     yield DocsData(
-                        idx=idx,
                         type="text",
+                        text=format_table(row),
                         data=row,
                         metadata=self.metadata,
                     )
-                if not idx:
+                if not has_value:
                     yield DocsData(
-                        idx=0,
                         type="text",
+                        text="",
                         data=[],
                         metadata=self.metadata,
                     )
@@ -60,17 +63,17 @@ class XlsxLoader(BaseLoader):
                     for idx in range(1, sheet.nrows):
                         row = sheet.row_values(idx)
                         yield DocsData(
-                            idx=idx - 1,
                             type="text",
+                            text=format_table(row),
                             data=row,
                             metadata=self.metadata,
                         )
                 else:
                     yield DocsData(
-                        idx=0,
                         type="text",
+                        text="",
                         data=[],
                         metadata=self.metadata,
                     )
         else:
-            raise ValueError(f"Unsupported file format: {header_flag}")
+            raise ValueError(f"Unsupported file header: {header_flag}")

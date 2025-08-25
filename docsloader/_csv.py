@@ -3,6 +3,7 @@ import logging
 from typing import AsyncGenerator
 
 from docsloader.base import BaseLoader, DocsData
+from docsloader.utils import format_table
 
 logger = logging.getLogger(__name__)
 
@@ -28,23 +29,24 @@ class CvsLoader(BaseLoader):
                 next(reader)
             except StopIteration:
                 return
-            idx = 0
             self.metadata.update(
                 header=header,
             )
-            for idx, row in enumerate(reader):
+            has_value = False
+            for row in reader:
+                has_value = True
                 row = [r if r else None for r in row]
-                padded_row = (row + [None] * (header_len - len(row)))[:header_len]
+                row = (row + [None] * (header_len - len(row)))[:header_len]
                 yield DocsData(
-                    idx=idx,
                     type="text",
-                    data=padded_row,
+                    text=format_table(row),
+                    data=row,
                     metadata=self.metadata,
                 )
-            if not idx:
+            if not has_value:
                 yield DocsData(
-                    idx=0,
                     type="text",
+                    text="",
                     data=[],
                     metadata=self.metadata,
                 )

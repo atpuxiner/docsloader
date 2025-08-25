@@ -12,12 +12,9 @@ class MdLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         async with aiofiles.open(self.tmpfile, mode="r", encoding=self.encoding) as f:
-            idx = 0
             async for line in f:
                 yield DocsData(
-                    idx=idx,
                     type="text",
                     text=line,
                     metadata=self.metadata,
                 )
-                idx += 1

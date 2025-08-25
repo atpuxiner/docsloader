@@ -1,11 +1,12 @@
 import logging
 from pathlib import Path
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Generator
 
 import fitz
 import numpy as np
 
 from docsloader.base import BaseLoader, DocsData
+from docsloader.utils import format_image
 
 logger = logging.getLogger(__name__)
 
@@ -13,25 +14,20 @@ logger = logging.getLogger(__name__)
 class PdfLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        idx = 0
         for item in self.extract_by_pymupdf(tmpfile=self.tmpfile):
-            metadata = self.metadata.copy()
-            metadata.update(
+            self.metadata.update(
                 page=item.get("page"),
                 page_total=item.get("page_total"),
                 page_path=item.get("page_path"),
-                image_path=item.get("image_path"),
             )
             yield DocsData(
-                idx=idx,
                 type=item.get("type"),
                 text=item.get("text"),
                 data=item.get("data"),
-                metadata=metadata,
+                metadata=self.metadata,
             )
-            idx += 1
 
-    def extract_by_pymupdf(self, tmpfile: str, dpi: int = 300):
+    def extract_by_pymupdf(self, tmpfile: str, dpi: int = 300) -> Generator[dict, None, None]:
         doc = fitz.open(tmpfile)
         image_dir = Path(tmpfile + ".images")
         image_dir.mkdir(parents=True, exist_ok=True)
@@ -40,9 +36,9 @@ class PdfLoader(BaseLoader):
             page = doc.load_page(page_idx)
             page_pix = page.get_pixmap(dpi=dpi, alpha=False)
             ext = "png" if page_pix.alpha else "jpg"
-            page_path = image_dir / f"image_{page_idx}.{ext}"
+            page_path = str(image_dir / f"image_{page_idx}.{ext}")
             try:
-                page_pix.save(str(page_path))
+                page_pix.save(page_path)
             except Exception as e:
                 page_path = None
                 logger.error(f"Failed to save image: {e}")
@@ -56,28 +52,29 @@ class PdfLoader(BaseLoader):
                     "text": page_text,
                     "page": page_idx + 1,
                     "page_total": page_total,
-                    "page_path": str(page_path),
+                    "page_path": page_path,
                 }
             # image
             for img_idx, img in enumerate(page.get_images(full=True)):
                 xref = img[0]
                 pix = fitz.Pixmap(doc, xref)
                 ext = "png" if pix.alpha else "jpg"
-                image_path = image_dir / f"image_{page_idx}-{img_idx}.{ext}"
+                image_path = str(image_dir / f"image_{page_idx}-{img_idx}.{ext}")
                 try:
-                    pix.save(str(image_path))
+                    pix.save(image_path)
                     yield {
                         "type": "image",
+                        "text": format_image(image_path),
+                        "data": image_path,
                         "page": page_idx + 1,
                         "page_total": page_total,
-                        "page_path": str(page_path),
-                        "image_path": str(image_path),
+                        "page_path": page_path,
                     }
                 except Exception as e:
                     logger.error(f"Failed to save image: {e}")
 
     @staticmethod
-    def _is_two_column(page, margin_threshold=0.1):
+    def _is_two_column(page, margin_threshold=0.1) -> bool:
         """检测页面是否为双列布局"""
         blocks = page.get_text("blocks")
         if not blocks:
@@ -96,17 +93,15 @@ class PdfLoader(BaseLoader):
         return False
 
     @staticmethod
-    def _extract_adaptive_columns(page):
+    def _extract_adaptive_columns(page) -> str:
         """自适应分列提取文本"""
         text_blocks = [b for b in page.get_text("blocks") if b[4].strip()]
         if not text_blocks:
             return ""
-
         x_coords = sorted([(b[0] + b[2]) / 2 for b in text_blocks])
         gaps = [x_coords[i + 1] - x_coords[i] for i in range(len(x_coords) - 1)]
         max_gap_index = np.argmax(gaps)
         split_x = (x_coords[max_gap_index] + x_coords[max_gap_index + 1]) / 2
-
         left_col = []
         right_col = []
         for b in sorted(text_blocks, key=lambda x: (-x[1], x[0])):
@@ -115,5 +110,4 @@ class PdfLoader(BaseLoader):
                 left_col.append(b[4])
             else:
                 right_col.append(b[4])
-
         return "\n".join(left_col + right_col)
