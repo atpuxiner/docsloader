@@ -7,21 +7,23 @@
 @history
 """
 from ._txt import TxtLoader
-from ._md import MdLoader
 from ._csv import CvsLoader
+from ._md import MdLoader
+from ._html import HtmlLoader
 from ._xlsx import XlsxLoader
+from ._pptx import PptxLoader
 from ._docx import DocxLoader
 from ._pdf import PdfLoader
-from ._pptx import PptxLoader
 
 __version__ = "0.0.2"
 
 __all__ = [
     "TxtLoader",
-    "MdLoader",
     "CvsLoader",
+    "MdLoader",
+    "HtmlLoader",
     "XlsxLoader",
+    "PptxLoader",
     "DocxLoader",
     "PdfLoader",
-    "PptxLoader",
 ]
