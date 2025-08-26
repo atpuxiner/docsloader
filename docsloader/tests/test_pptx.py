@@ -7,7 +7,7 @@ from docsloader import PptxLoader
 logger = init_logger()
 
 
-class TesDocxLoader(unittest.IsolatedAsyncioTestCase):
+class TestPptxLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):

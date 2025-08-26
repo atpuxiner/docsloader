@@ -2,19 +2,19 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader import HtmlLoader
+from docsloader import ImgLoader
 
 logger = init_logger()
 
 
-class TestHtmlLoader(unittest.IsolatedAsyncioTestCase):
+class TestImgLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.html"
+        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.png"
 
     async def asyncSetUp(self):
-        self.loader = HtmlLoader(
+        self.loader = ImgLoader(
             path_or_url=self.path_or_url,
             is_rm_tmpfile=False,
         )

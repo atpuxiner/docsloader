@@ -14,6 +14,7 @@ from ._xlsx import XlsxLoader
 from ._pptx import PptxLoader
 from ._docx import DocxLoader
 from ._pdf import PdfLoader
+from ._img import ImgLoader
 
 __version__ = "0.0.2"
 
@@ -26,4 +27,5 @@ __all__ = [
     "PptxLoader",
     "DocxLoader",
     "PdfLoader",
+    "ImgLoader",
 ]
