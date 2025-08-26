@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 class XlsxLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
+        table_fmt = self.load_options.get("table_fmt")
         with open(self.tmpfile, "rb") as f:
             header_flag = binascii.hexlify(f.read(8)).decode().upper()
         if header_flag.startswith("504B0304"):  # .xlsx
@@ -27,10 +28,10 @@ class XlsxLoader(BaseLoader):
                 except StopIteration:
                     header = []
                     rows = []
-                self.metadata.update(
-                    header=header,
-                    sheet_name=sheet_name,
-                )
+                self.metadata.update({
+                    "header": header,
+                    "sheet_name": sheet_name,
+                })
                 has_value = False
                 for row in rows:
                     has_value = True
@@ -55,16 +56,16 @@ class XlsxLoader(BaseLoader):
                 sheet = book.sheet_by_name(sheet_name)
                 logger.info(f"Processing sheet: {sheet_name}")
                 header = sheet.row_values(0) if sheet.nrows > 0 else []
-                self.metadata.update(
-                    header=header,
-                    sheet_name=sheet_name,
-                )
+                self.metadata.update({
+                    "header": header,
+                    "sheet_name": sheet_name,
+                })
                 if sheet.nrows > 1:
                     for idx in range(1, sheet.nrows):
                         row = sheet.row_values(idx)
                         yield DocsData(
                             type="text",
-                            text=format_table(row),
+                            text=format_table(row, fmt=table_fmt),
                             data=row,
                             metadata=self.metadata,
                         )

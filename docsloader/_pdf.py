@@ -14,12 +14,18 @@ logger = logging.getLogger(__name__)
 class PdfLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        for item in self.extract_by_pymupdf(tmpfile=self.tmpfile):
-            self.metadata.update(
-                page=item.get("page"),
-                page_total=item.get("page_total"),
-                page_path=item.get("page_path"),
-            )
+        pdf_dpi = self.load_options.get("pdf_dpi")
+        image_fmt = self.load_options.get("image_fmt")
+        for item in self.extract_by_pymupdf(
+                filepath=self.tmpfile,
+                dpi=pdf_dpi,
+                image_fmt=image_fmt,
+        ):
+            self.metadata.update({
+                "page": item.get("page"),
+                "page_total": item.get("page_total"),
+                "page_path": item.get("page_path"),
+            })
             yield DocsData(
                 type=item.get("type"),
                 text=item.get("text"),
@@ -27,9 +33,14 @@ class PdfLoader(BaseLoader):
                 metadata=self.metadata,
             )
 
-    def extract_by_pymupdf(self, tmpfile: str, dpi: int = 300) -> Generator[dict, None, None]:
-        doc = fitz.open(tmpfile)
-        image_dir = Path(tmpfile + ".images")
+    def extract_by_pymupdf(
+            self,
+            filepath: str,
+            dpi: int = 300,
+            image_fmt: str = "path",
+    ) -> Generator[dict, None, None]:
+        doc = fitz.open(filepath)
+        image_dir = Path(filepath + ".tmp")
         image_dir.mkdir(parents=True, exist_ok=True)
         page_total = len(doc)
         for page_idx in range(page_total):
@@ -64,7 +75,7 @@ class PdfLoader(BaseLoader):
                     pix.save(image_path)
                     yield {
                         "type": "image",
-                        "text": format_image(image_path),
+                        "text": format_image(image_path, fmt=image_fmt),
                         "data": image_path,
                         "page": page_idx + 1,
                         "page_total": page_total,

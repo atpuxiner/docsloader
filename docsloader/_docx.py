@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 class DocxLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        for item in self.extract_by_python_docx(tmpfile=self.tmpfile):
+        image_fmt = self.load_options.get("image_fmt")
+        table_fmt = self.load_options.get("table_fmt")
+        for item in self.extract_by_python_docx(
+                filepath=self.tmpfile,
+                image_fmt=image_fmt,
+                table_fmt=table_fmt,
+        ):
             yield DocsData(
                 type=item.get("type"),
                 text=item.get("text"),
@@ -25,15 +31,19 @@ class DocxLoader(BaseLoader):
             )
 
     @staticmethod
-    def extract_by_python_docx(tmpfile: str) -> dict:
-        doc = DocxDocument(tmpfile)
+    def extract_by_python_docx(
+            filepath: str,
+            image_fmt: str = "path",
+            table_fmt: str = "html"
+    ) -> dict:
+        doc = DocxDocument(filepath)
         # images
-        image_dir = Path(tmpfile + ".images")
+        image_dir = Path(filepath + ".tmp")
         image_dir.mkdir(parents=True, exist_ok=True)
         image_map = {}  # relId -> local image path
         image_counter = 1
         try:
-            with zipfile.ZipFile(tmpfile, mode="r") as z:
+            with zipfile.ZipFile(filepath, mode="r") as z:
                 for file_info in z.infolist():
                     if file_info.filename.startswith("word/media/"):
                         ext = Path(file_info.filename).suffix
@@ -92,7 +102,7 @@ class DocxLoader(BaseLoader):
                     for image_path in images_in_para:
                         yield {
                             "type": "image",
-                            "text": format_image(image_path),
+                            "text": format_image(image_path, fmt=image_fmt),  # noqa
                             "data": image_path
                         }
                 elif para_text:
@@ -111,6 +121,6 @@ class DocxLoader(BaseLoader):
                     table_data.append(row_data)
                 yield {
                     "type": "table",
-                    "text": format_table(table_data),
+                    "text": format_table(table_data, fmt=table_fmt),  # noqa
                     "data": table_data
                 }

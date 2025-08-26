@@ -42,6 +42,7 @@ class BaseLoader:
             ] = None,
             encoding: str = None,
             load_type: str = "basic",
+            load_options: dict = None,
             metadata: dict = None,
             is_rm_tmpfile: bool = True
     ):
@@ -49,13 +50,14 @@ class BaseLoader:
         self.suffix = suffix
         self.encoding = encoding
         self.load_type = load_type
+        self.load_options = load_options or {}
         self.metadata = metadata or {}
         self.is_rm_tmpfile = is_rm_tmpfile
         self.tmpfile = None
 
-    async def load(self, *args, **kwargs) -> AsyncGenerator[DocsData, None]:
+    async def load(self, **kwargs) -> AsyncGenerator[DocsData, None]:
         """加载"""
-        load_type = kwargs.get("load_type") or self.load_type
+        load_type = kwargs.pop("load_type", self.load_type)
         logger.info(f"load type: {load_type}")
         if method := getattr(self, f"load_by_{load_type}", None):
             try:
@@ -64,8 +66,9 @@ class BaseLoader:
                     logger.warning(f"File is empty({self.path_or_url}): {self.tmpfile}")
                     yield DocsData(type="empty")
                     return
+                self.load_options.update(kwargs)
                 idx = 0
-                async for item in method(*args, **kwargs):
+                async for item in method():
                     item.idx = idx
                     yield item
                     idx += 1
@@ -87,6 +90,13 @@ class BaseLoader:
             self.tmpfile = await download_to_tmpfile(url=self.path_or_url, suffix=self.suffix)
         if not self.encoding:
             self.encoding = detect_encoding(data_or_path=self.tmpfile)
+        # load options
+        self.load_options.setdefault("csv_sep", ",")
+        self.load_options.setdefault("html_exclude_tags", ("script", "style"))
+        self.load_options.setdefault("html_remove_blank_text", True)
+        self.load_options.setdefault("pdf_dpi", 300)
+        self.load_options.setdefault("image_fmt", "path")
+        self.load_options.setdefault("table_fmt", "html")
 
     @staticmethod
     async def is_file_empty(file_path) -> bool:

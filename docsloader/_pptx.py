@@ -14,11 +14,17 @@ logger = logging.getLogger(__name__)
 class PptxLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        for item in self.extract_by_python_pptx(tmpfile=self.tmpfile):
-            self.metadata.update(
-                page=item.get("page"),
-                page_total=item.get("page_total"),
-            )
+        image_fmt = self.load_options.get("image_fmt")
+        table_fmt = self.load_options.get("table_fmt")
+        for item in self.extract_by_python_pptx(
+                filepath=self.tmpfile,
+                image_fmt=image_fmt,
+                table_fmt=table_fmt,
+        ):
+            self.metadata.update({
+                "page": item.get("page"),
+                "page_total": item.get("page_total"),
+            })
             yield DocsData(
                 type=item.get("type"),
                 text=item.get("text"),
@@ -27,9 +33,13 @@ class PptxLoader(BaseLoader):
             )
 
     @staticmethod
-    def extract_by_python_pptx(tmpfile: str) -> Generator[dict, None, None]:
-        presentation = Presentation(tmpfile)
-        image_dir = Path(f"{tmpfile}.images")
+    def extract_by_python_pptx(
+            filepath: str,
+            image_fmt: str,
+            table_fmt: str,
+    ) -> Generator[dict, None, None]:
+        presentation = Presentation(filepath)
+        image_dir = Path(f"{filepath}.tmp")
         image_dir.mkdir(parents=True, exist_ok=True)
         page_total = len(presentation.slides)
         for slide_idx, slide in enumerate(presentation.slides):
@@ -39,6 +49,8 @@ class PptxLoader(BaseLoader):
                     shape=shape,
                     image_dir=image_dir,
                     image_idx=f"{slide_idx}-{shape_idx}",
+                    image_fmt=image_fmt,
+                    table_fmt=table_fmt,
                 )
                 if extracted_data:
                     extracted_data.update(
@@ -52,6 +64,8 @@ class PptxLoader(BaseLoader):
                             shape=sub_shape,
                             image_dir=image_dir,
                             image_idx=f"{slide_idx}-{shape_idx}-{sub_shape_idx}",
+                            image_fmt=image_fmt,
+                            table_fmt=table_fmt,
                         )
                         if group_extracted_data:
                             group_extracted_data.update(
@@ -66,7 +80,13 @@ class PptxLoader(BaseLoader):
                 logger.debug(f"Could not remove empty image directory: {image_dir}")
 
     @staticmethod
-    def extract_shape(shape, image_dir: Path, image_idx: str) -> dict:
+    def extract_shape(
+            shape,
+            image_dir: Path,
+            image_idx: str,
+            image_fmt: str = "path",
+            table_fmt: str = "html",
+    ) -> dict:
         """
         解析单个 shape 对象，提取其中的文本、表格和图片信息。
         """
@@ -82,16 +102,6 @@ class PptxLoader(BaseLoader):
                     "type": "text",
                     "text": shape_text,
                 }
-        elif shape.shape_type == MSO_SHAPE_TYPE.TABLE:
-            table_title = shape.name if shape.name else "Table"
-            table_data = [[cell.text.strip() for cell in row.cells] for row in shape.table.rows]
-            shape_text += f"\n## {table_title}\n"
-            shape_text += format_table(table_data)
-            shape_data = {
-                "type": "table",
-                "text": shape_text,
-                "data": table_data
-            }
         elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
             image = shape.image
             image_filename = f"image_{image_idx}.{image.ext}"
@@ -100,7 +110,17 @@ class PptxLoader(BaseLoader):
                 f.write(image.blob)
             shape_data = {
                 "type": "image",
-                "text": format_image(image_path),
+                "text": format_image(image_path, fmt=image_fmt),  # noqa
                 "data": image_path,
+            }
+        elif shape.shape_type == MSO_SHAPE_TYPE.TABLE:
+            table_title = shape.name if shape.name else "Table"
+            table_data = [[cell.text.strip() for cell in row.cells] for row in shape.table.rows]
+            shape_text += f"\n## {table_title}\n"
+            shape_text += format_table(table_data, fmt=table_fmt)  # noqa
+            shape_data = {
+                "type": "table",
+                "text": shape_text,
+                "data": table_data
             }
         return shape_data
