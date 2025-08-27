@@ -9,7 +9,7 @@
 import os
 
 from ._txt import TxtLoader
-from ._csv import CvsLoader
+from ._csv import CsvLoader
 from ._md import MdLoader
 from ._html import HtmlLoader
 from ._xlsx import XlsxLoader
@@ -22,7 +22,7 @@ __version__ = "0.0.3"
 
 __all__ = [
     "TxtLoader",
-    "CvsLoader",
+    "CsvLoader",
     "MdLoader",
     "HtmlLoader",
     "XlsxLoader",

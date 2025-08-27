@@ -8,7 +8,7 @@ from docsloader.utils import format_table
 logger = logging.getLogger(__name__)
 
 
-class CvsLoader(BaseLoader):
+class CsvLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         csv_sep = self.load_options.get("csv_sep")
