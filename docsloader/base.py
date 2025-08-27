@@ -1,7 +1,7 @@
 import logging
 import os
 import shutil
-from typing import AsyncGenerator, Any, Literal
+from typing import AsyncGenerator, Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -22,27 +22,14 @@ class DocsData(BaseModel):
 
 
 class BaseLoader:
+    """
+    base loader
+    """
 
     def __init__(
             self,
             path_or_url: str,
-            suffix: Literal[
-                ".txt",
-                ".csv",
-                ".md",
-                ".html",
-                ".htm",
-                ".xlsx",
-                ".xls",
-                ".pptx",
-                ".ppt",
-                ".docx",
-                ".doc",
-                ".pdf",
-                ".jpg",
-                ".jpeg",
-                ".png",
-            ] = None,
+            suffix: str = None,
             encoding: str = None,
             load_type: str = "basic",
             load_options: dict = None,
@@ -85,10 +72,10 @@ class BaseLoader:
         if self.tmpfile is not None:
             return
         self.tmpfile = self.path_or_url
-        if not self.suffix:
+        if self.suffix is None:
             _, self.suffix = os.path.splitext(self.tmpfile)
-        result = urlparse(self.path_or_url)
-        if all([result.scheme, result.netloc]):  # url
+        res = urlparse(self.path_or_url)
+        if all([res.scheme, res.netloc]):  # url
             logger.info(f"downloading {self.path_or_url} to tmpfile")
             self.tmpfile = await download_to_tmpfile(url=self.path_or_url, suffix=self.suffix)
         if not self.encoding:

@@ -11,7 +11,7 @@ class TestPdfLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.pdf"
+        cls.path_or_url = r"E:\NewFolder\测试.pdf"
 
     async def asyncSetUp(self):
         self.loader = PdfLoader(

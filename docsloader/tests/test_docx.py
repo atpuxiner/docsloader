@@ -11,7 +11,7 @@ class TesDocxLoader(unittest.IsolatedAsyncioTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.path_or_url = r"C:\Users\atpux\Desktop\测试.docx"
+        cls.path_or_url = r"E:\NewFolder\测试.docx"
 
     async def asyncSetUp(self):
         self.loader = DocxLoader(
