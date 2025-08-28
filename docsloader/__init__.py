@@ -65,7 +65,7 @@ class AutoLoader:
             load_type: str = "basic",
             load_options: dict = None,
             metadata: dict = None,
-            is_rm_tmpfile: bool = True,
+            rm_tmpfile: bool = True,
     ):
         """自动根据 suffix 返回对应的 Loader 实例"""
         if suffix is None:
@@ -84,7 +84,7 @@ class AutoLoader:
             load_type=load_type,
             load_options=load_options,
             metadata=metadata,
-            is_rm_tmpfile=is_rm_tmpfile
+            rm_tmpfile=rm_tmpfile,
         )
 
     @staticmethod

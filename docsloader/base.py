@@ -34,7 +34,7 @@ class BaseLoader:
             load_type: str = "basic",
             load_options: dict = None,
             metadata: dict = None,
-            is_rm_tmpfile: bool = True
+            rm_tmpfile: bool = True
     ):
         self.path_or_url = path_or_url
         self.suffix = suffix
@@ -42,7 +42,7 @@ class BaseLoader:
         self.load_type = load_type
         self.load_options = load_options or {}
         self.metadata = metadata or {}
-        self.is_rm_tmpfile = is_rm_tmpfile
+        self.rm_tmpfile = rm_tmpfile
         self.tmpfile = None
 
     async def load(self, **kwargs) -> AsyncGenerator[DocsData, None]:
@@ -63,7 +63,8 @@ class BaseLoader:
                     yield item
                     idx += 1
             finally:
-                await self.rm_tmpfile()
+                if self.rm_tmpfile:
+                    await self.rm_file(self.tmpfile)
         else:
             raise ValueError(f"Unsupported load type: {load_type}")
 
@@ -92,14 +93,14 @@ class BaseLoader:
     async def is_file_empty(file_path) -> bool:
         return os.path.getsize(file_path) == 0
 
-    async def rm_tmpfile(self):
-        """删除临时文件"""
-        if self.is_rm_tmpfile:
-            if self.tmpfile and os.path.exists(self.tmpfile):
-                os.remove(self.tmpfile)
+    @staticmethod
+    async def rm_file(filepath: str):
+        """删除文件"""
+        if filepath and os.path.isfile(filepath):
+            os.remove(filepath)
 
     @staticmethod
-    async def rm_tmpdir(tmpdir: str):
-        """删除临时目录"""
-        if os.path.isdir(tmpdir):
-            shutil.rmtree(tmpdir)
+    async def rm_dir(dirpath: str):
+        """删除目录"""
+        if dirpath and os.path.isdir(dirpath):
+            shutil.rmtree(dirpath)

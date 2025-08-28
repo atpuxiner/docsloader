@@ -16,7 +16,7 @@ class TestMdLoader(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.loader = MdLoader(
             path_or_url=self.path_or_url,
-            is_rm_tmpfile=False,
+            rm_tmpfile=False,
         )
 
     async def test_load(self):

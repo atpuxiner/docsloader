@@ -2,7 +2,7 @@ import unittest
 
 from toollib.log import init_logger
 
-from docsloader import CvsLoader
+from docsloader import CsvLoader
 
 logger = init_logger()
 
@@ -14,9 +14,9 @@ class TestCsvLoader(unittest.IsolatedAsyncioTestCase):
         cls.path_or_url = r"E:\NewFolder\测试.csv"
 
     async def asyncSetUp(self):
-        self.loader = CvsLoader(
+        self.loader = CsvLoader(
             path_or_url=self.path_or_url,
-            is_rm_tmpfile=False,
+            rm_tmpfile=False,
         )
 
     async def test_load(self):

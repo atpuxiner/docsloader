@@ -8,7 +8,7 @@ from docx.table import Table
 from docx.text.paragraph import Paragraph
 
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_table, format_image
+from docsloader.utils import format_table, format_image, office_cvt_openxml
 
 logger = logging.getLogger(__name__)
 
@@ -18,8 +18,11 @@ class DocxLoader(BaseLoader):
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         image_fmt = self.load_options.get("image_fmt")
         table_fmt = self.load_options.get("table_fmt")
+        tmpfile_cvt = None
+        if self.suffix == ".doc":
+            tmpfile_cvt = office_cvt_openxml(filepath=self.tmpfile, file_suffix=self.suffix)
         for item in self.extract_by_python_docx(
-                filepath=self.tmpfile,
+                filepath=tmpfile_cvt or self.tmpfile,
                 image_fmt=image_fmt,
                 table_fmt=table_fmt,
         ):
@@ -29,6 +32,8 @@ class DocxLoader(BaseLoader):
                 data=item.get("data"),
                 metadata=self.metadata,
             )
+        if tmpfile_cvt:
+            await self.rm_file(filepath=tmpfile_cvt)
 
     @staticmethod
     def extract_by_python_docx(
