@@ -52,7 +52,7 @@ class BaseLoader:
         if method := getattr(self, f"load_by_{load_type}", None):
             try:
                 await self.setup()
-                if await self.is_file_empty(self.tmpfile):
+                if self.is_file_empty(self.tmpfile):
                     logger.warning(f"File is empty({self.path_or_url}): {self.tmpfile}")
                     yield DocsData(type="empty")
                     return
@@ -64,7 +64,7 @@ class BaseLoader:
                     idx += 1
             finally:
                 if self.rm_tmpfile:
-                    await self.rm_file(self.tmpfile)
+                    self.rm_file(self.tmpfile)
         else:
             raise ValueError(f"Unsupported load type: {load_type}")
 
@@ -90,17 +90,17 @@ class BaseLoader:
         self.load_options.setdefault("table_fmt", "html")
 
     @staticmethod
-    async def is_file_empty(file_path) -> bool:
+    def is_file_empty(file_path) -> bool:
         return os.path.getsize(file_path) == 0
 
     @staticmethod
-    async def rm_file(filepath: str):
+    def rm_file(filepath: str):
         """删除文件"""
         if filepath and os.path.isfile(filepath):
             os.remove(filepath)
 
     @staticmethod
-    async def rm_dir(dirpath: str):
+    def rm_dir(dirpath: str):
         """删除目录"""
         if dirpath and os.path.isdir(dirpath):
             shutil.rmtree(dirpath)

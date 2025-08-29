@@ -35,7 +35,7 @@ class PptxLoader(BaseLoader):
                 metadata=self.metadata,
             )
         if tmpfile_cvt:
-            await self.rm_file(filepath=tmpfile_cvt)
+            self.rm_file(filepath=tmpfile_cvt)
 
     @staticmethod
     def extract_by_python_pptx(
