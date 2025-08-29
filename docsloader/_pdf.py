@@ -75,7 +75,7 @@ class PdfLoader(BaseLoader):
                     pix.save(image_path)
                     yield {
                         "type": "image",
-                        "text": format_image(image_path, fmt=image_fmt),
+                        "text": format_image(image_path, fmt=image_fmt),  # noqa
                         "data": image_path,
                         "page": page_idx + 1,
                         "page_total": page_total,
@@ -109,12 +109,13 @@ class PdfLoader(BaseLoader):
         text_blocks = [b for b in page.get_text("blocks") if b[4].strip()]
         if not text_blocks:
             return ""
+        # 计算分列位置
         x_coords = sorted([(b[0] + b[2]) / 2 for b in text_blocks])
         gaps = [x_coords[i + 1] - x_coords[i] for i in range(len(x_coords) - 1)]
         max_gap_index = np.argmax(gaps)
         split_x = (x_coords[max_gap_index] + x_coords[max_gap_index + 1]) / 2
-        left_col = []
-        right_col = []
+        # 分列收集文本块
+        left_col, right_col = [], []
         for b in sorted(text_blocks, key=lambda x: (-x[1], x[0])):
             block_center = (b[0] + b[2]) / 2
             if block_center < split_x:
