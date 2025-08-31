@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Python>=3.11
-toollib==1.7.4
+toollib==1.7.5
 pydantic==2.11.7
 # txt csv md html
 aiofiles==24.1.0

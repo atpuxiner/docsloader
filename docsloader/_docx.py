@@ -1,7 +1,7 @@
 import logging
-from typing import AsyncGenerator
+import os
 import zipfile
-from pathlib import Path
+from typing import AsyncGenerator
 
 from docx import Document as DocxDocument
 from docx.table import Table
@@ -35,34 +35,32 @@ class DocxLoader(BaseLoader):
         if tmpfile_cvt:
             self.rm_file(filepath=tmpfile_cvt)
 
-    @staticmethod
     def extract_by_python_docx(
+            self,
             filepath: str,
             image_fmt: str = "path",
             table_fmt: str = "html"
     ) -> dict:
-        doc = DocxDocument(filepath)
         # images
-        image_dir = Path(filepath + ".tmp")
-        image_dir.mkdir(parents=True, exist_ok=True)
+        tmp_dir = self.mk_tmpdir()
         image_map = {}  # relId -> local image path
         image_counter = 1
         try:
             with zipfile.ZipFile(filepath, mode="r") as z:
                 for file_info in z.infolist():
                     if file_info.filename.startswith("word/media/"):
-                        ext = Path(file_info.filename).suffix
-                        image_path = image_dir / f"image_{image_counter}{ext}"
+                        _, ext = os.path.splitext(file_info.filename)
+                        image_path = os.path.join(tmp_dir, f"image_{image_counter}{ext}")
                         with open(image_path, "wb") as f:
                             f.write(z.read(file_info.filename))
                         # relId map
-                        image_map[file_info.filename] = str(image_path)
+                        image_map[file_info.filename] = image_path
                         image_counter += 1
-            if not image_map and image_dir.is_dir():
-                image_dir.rmdir()
+            self.rm_empty_dir(tmp_dir)
         except Exception as e:
             logger.error(f"extracting the image failed: {e}")
         # element
+        doc = DocxDocument(filepath)
         for element in doc.element.body:
             if element.tag.endswith("p"):
                 paragraph = Paragraph(element, doc)
@@ -80,8 +78,8 @@ class DocxLoader(BaseLoader):
                             rel_id = embed
                     # 2. a:imagedata 或 v:shape/@imagedata + r:id
                     if not rel_id:
-                        imagedatas = node.xpath(".//a:imagedata | .//v:imagedata")
-                        for imgdata in imagedatas:
+                        imagedata = node.xpath(".//a:imagedata | .//v:imagedata")
+                        for imgdata in imagedata:
                             rid = imgdata.get("{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id")
                             if rid:
                                 rel_id = rid

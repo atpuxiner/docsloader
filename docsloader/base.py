@@ -1,6 +1,7 @@
 import logging
 import os
 import shutil
+import tempfile
 from typing import AsyncGenerator, Any
 from urllib.parse import urlparse
 
@@ -88,6 +89,7 @@ class BaseLoader:
         self.load_options.setdefault("pdf_dpi", 300)
         self.load_options.setdefault("image_fmt", "path")
         self.load_options.setdefault("table_fmt", "html")
+        self.load_options.setdefault("max_workers", None)  # for pdf
 
     @staticmethod
     def is_file_empty(file_path) -> bool:
@@ -104,3 +106,16 @@ class BaseLoader:
         """删除目录"""
         if dirpath and os.path.isdir(dirpath):
             shutil.rmtree(dirpath)
+
+    @staticmethod
+    def mk_tmpdir() -> str:
+        """创建临时目录"""
+        return tempfile.mkdtemp()
+
+    @staticmethod
+    def rm_empty_dir(dirpath: str):
+        """删除空目录"""
+        if dirpath and os.path.isdir(dirpath):
+            with os.scandir(dirpath) as entries:
+                if not next(entries, None):
+                    os.rmdir(dirpath)

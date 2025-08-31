@@ -1,9 +1,8 @@
 import logging
+import os
 from typing import AsyncGenerator, Generator
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-
-from pathlib import Path
 
 from docsloader.base import BaseLoader, DocsData
 from docsloader.utils import format_table, format_image, office_cvt_openxml
@@ -37,22 +36,21 @@ class PptxLoader(BaseLoader):
         if tmpfile_cvt:
             self.rm_file(filepath=tmpfile_cvt)
 
-    @staticmethod
     def extract_by_python_pptx(
+            self,
             filepath: str,
             image_fmt: str,
             table_fmt: str,
     ) -> Generator[dict, None, None]:
+        tmp_dir = self.mk_tmpdir()
         presentation = Presentation(filepath)
-        image_dir = Path(f"{filepath}.tmp")
-        image_dir.mkdir(parents=True, exist_ok=True)
         page_total = len(presentation.slides)
         for slide_idx, slide in enumerate(presentation.slides):
             logger.debug(f"Processing slide {slide_idx + 1}")
             for shape_idx, shape in enumerate(slide.shapes):
                 extracted_data = PptxLoader.extract_shape(
                     shape=shape,
-                    image_dir=image_dir,
+                    tmp_dir=tmp_dir,
                     image_idx=f"{slide_idx}-{shape_idx}",
                     image_fmt=image_fmt,
                     table_fmt=table_fmt,
@@ -67,7 +65,7 @@ class PptxLoader(BaseLoader):
                     for sub_shape_idx, sub_shape in enumerate(shape.shapes):
                         group_extracted_data = PptxLoader.extract_shape(
                             shape=sub_shape,
-                            image_dir=image_dir,
+                            tmp_dir=tmp_dir,
                             image_idx=f"{slide_idx}-{shape_idx}-{sub_shape_idx}",
                             image_fmt=image_fmt,
                             table_fmt=table_fmt,
@@ -78,16 +76,12 @@ class PptxLoader(BaseLoader):
                                 page_total=page_total,
                             )
                             yield group_extracted_data
-        if image_dir.is_dir() and not any(image_dir.iterdir()):
-            try:
-                image_dir.rmdir()
-            except OSError:
-                logger.debug(f"Could not remove empty image directory: {image_dir}")
+        self.rm_empty_dir(tmp_dir)
 
     @staticmethod
     def extract_shape(
             shape,
-            image_dir: Path,
+            tmp_dir: str,
             image_idx: str,
             image_fmt: str = "path",
             table_fmt: str = "html",
@@ -109,8 +103,7 @@ class PptxLoader(BaseLoader):
                 }
         elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
             image = shape.image
-            image_filename = f"image_{image_idx}.{image.ext}"
-            image_path = str(image_dir / image_filename)
+            image_path = os.path.join(tmp_dir, f"image_{image_idx}.{image.ext}")
             with open(image_path, "wb") as f:
                 f.write(image.blob)
             shape_data = {
