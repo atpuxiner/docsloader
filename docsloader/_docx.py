@@ -41,8 +41,7 @@ class DocxLoader(BaseLoader):
             image_fmt: str = "path",
             table_fmt: str = "html"
     ) -> dict:
-        # images
-        tmp_dir = self.mk_tmpdir()
+        tmpdir = self.mk_tmpdir()
         image_map = {}  # relId -> local image path
         image_counter = 1
         try:
@@ -50,16 +49,15 @@ class DocxLoader(BaseLoader):
                 for file_info in z.infolist():
                     if file_info.filename.startswith("word/media/"):
                         _, ext = os.path.splitext(file_info.filename)
-                        image_path = os.path.join(tmp_dir, f"image_{image_counter}{ext}")
+                        image_path = os.path.join(tmpdir, f"image_{image_counter}{ext}")
                         with open(image_path, "wb") as f:
                             f.write(z.read(file_info.filename))
                         # relId map
                         image_map[file_info.filename] = image_path
                         image_counter += 1
-            self.rm_empty_dir(tmp_dir)
+            self.rm_empty_dir(tmpdir)
         except Exception as e:
             logger.error(f"extracting the image failed: {e}")
-        # element
         doc = DocxDocument(filepath)
         for element in doc.element.body:
             if element.tag.endswith("p"):

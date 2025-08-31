@@ -45,7 +45,7 @@ class PdfLoader(BaseLoader):
             image_fmt: str = "path",
             max_workers: int = None,
     ) -> Generator[dict, None, None]:
-        tmp_dir = self.mk_tmpdir()
+        tmpdir = self.mk_tmpdir()
         if max_workers == 0:
             with fitz.open(filepath) as doc:
                 page_total = len(doc)
@@ -54,7 +54,7 @@ class PdfLoader(BaseLoader):
                             doc=doc,
                             page_idx=page_idx,
                             page_total=page_total,
-                            tmp_dir=tmp_dir,
+                            tmpdir=tmpdir,
                             dpi=dpi,
                             image_fmt=image_fmt,
                     ):
@@ -70,7 +70,7 @@ class PdfLoader(BaseLoader):
                     "filepath": filepath,
                     "page_idx": page_idx,
                     "page_total": page_total,
-                    "tmp_dir": tmp_dir,
+                    "tmpdir": tmpdir,
                     "dpi": dpi,
                     "image_fmt": image_fmt,
                     "kvfile": kv.file,
@@ -84,14 +84,14 @@ class PdfLoader(BaseLoader):
                 except Exception as e:
                     logger.error(f"Task failed: {e}")
         kv.remove()
-        self.rm_empty_dir(tmp_dir)
+        self.rm_empty_dir(tmpdir)
 
     def _process_and_save_page(
             self,
             filepath: str,
             page_idx: int,
             page_total: int,
-            tmp_dir: str,
+            tmpdir: str,
             dpi: int,
             image_fmt: str,
             kvfile: str,
@@ -103,7 +103,7 @@ class PdfLoader(BaseLoader):
                     doc=doc,
                     page_idx=page_idx,
                     page_total=page_total,
-                    tmp_dir=tmp_dir,
+                    tmpdir=tmpdir,
                     dpi=dpi,
                     image_fmt=image_fmt,
             ):
@@ -118,14 +118,14 @@ class PdfLoader(BaseLoader):
             doc,
             page_idx: int,
             page_total: int,
-            tmp_dir: str,
+            tmpdir: str,
             dpi: int,
             image_fmt: str,
     ) -> Generator[dict, None, None]:
         page = doc.load_page(page_idx)
         page_pix = page.get_pixmap(dpi=dpi, alpha=False)
         ext = "png" if page_pix.alpha else "jpg"
-        page_path = os.path.join(tmp_dir, f"image_{page_idx}.{ext}")
+        page_path = os.path.join(tmpdir, f"image_{page_idx}.{ext}")
         try:
             page_pix.save(page_path)
         except Exception as e:
@@ -155,7 +155,7 @@ class PdfLoader(BaseLoader):
                 ext = "png"
             else:
                 ext = "png" if pix.alpha else "jpg"
-            image_path = os.path.join(tmp_dir, f"image_{page_idx}-{img_idx}.{ext}")
+            image_path = os.path.join(tmpdir, f"image_{page_idx}-{img_idx}.{ext}")
             try:
                 pix.save(image_path)
                 yield {

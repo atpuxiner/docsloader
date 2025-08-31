@@ -42,7 +42,7 @@ class PptxLoader(BaseLoader):
             image_fmt: str,
             table_fmt: str,
     ) -> Generator[dict, None, None]:
-        tmp_dir = self.mk_tmpdir()
+        tmpdir = self.mk_tmpdir()
         presentation = Presentation(filepath)
         page_total = len(presentation.slides)
         for slide_idx, slide in enumerate(presentation.slides):
@@ -50,7 +50,7 @@ class PptxLoader(BaseLoader):
             for shape_idx, shape in enumerate(slide.shapes):
                 extracted_data = PptxLoader.extract_shape(
                     shape=shape,
-                    tmp_dir=tmp_dir,
+                    tmpdir=tmpdir,
                     image_idx=f"{slide_idx}-{shape_idx}",
                     image_fmt=image_fmt,
                     table_fmt=table_fmt,
@@ -65,7 +65,7 @@ class PptxLoader(BaseLoader):
                     for sub_shape_idx, sub_shape in enumerate(shape.shapes):
                         group_extracted_data = PptxLoader.extract_shape(
                             shape=sub_shape,
-                            tmp_dir=tmp_dir,
+                            tmpdir=tmpdir,
                             image_idx=f"{slide_idx}-{shape_idx}-{sub_shape_idx}",
                             image_fmt=image_fmt,
                             table_fmt=table_fmt,
@@ -76,12 +76,12 @@ class PptxLoader(BaseLoader):
                                 page_total=page_total,
                             )
                             yield group_extracted_data
-        self.rm_empty_dir(tmp_dir)
+        self.rm_empty_dir(tmpdir)
 
     @staticmethod
     def extract_shape(
             shape,
-            tmp_dir: str,
+            tmpdir: str,
             image_idx: str,
             image_fmt: str = "path",
             table_fmt: str = "html",
@@ -103,7 +103,7 @@ class PptxLoader(BaseLoader):
                 }
         elif shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
             image = shape.image
-            image_path = os.path.join(tmp_dir, f"image_{image_idx}.{image.ext}")
+            image_path = os.path.join(tmpdir, f"image_{image_idx}.{image.ext}")
             with open(image_path, "wb") as f:
                 f.write(image.blob)
             shape_data = {
