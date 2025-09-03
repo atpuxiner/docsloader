@@ -47,7 +47,25 @@ class BaseLoader:
         self.tmpfile = None
 
     async def load(self, **kwargs) -> AsyncGenerator[DocsData, None]:
-        """加载"""
+        """
+        加载
+        :param kwargs:
+            - load_type, 默认 basic，注意：优先级高于实例参数
+                - pdf：
+                    - basic，基于 pymupdf
+                    - pdfplumber
+                - 其他：仅 basic
+            - csv_sep: str, [csv]分隔符，默认 ‘,’
+            - html_exclude_tags: tuple, [html]排除标签，默认 ("script", "style")
+            - html_remove_blank_text: bool, [html]移除空白文本，默认 True
+            - pdf_max_workers: int | None, [pdf]最大工作数，默认 0，注意：0-表线程同步，None-表取cpu核数
+            - pdf_keep_page_image: bool, [pdf]保留页面图片，默认 False
+            - pdf_keep_emdb_image: bool, [pdf]保留嵌入图片，默认 False
+            - pdf_dpi: int, [pdf]每英寸点数，默认 300
+            - image_fmt: Literal["path", "base64"], [public]图片格式，默认 path
+            - table_fmt： Literal["html", "md"], [public]表格格式，默认 html
+        :return:
+        """
         load_type = kwargs.pop("load_type", self.load_type)
         logger.info(f"load type: {load_type}")
         if method := getattr(self, f"load_by_{load_type}", None):
@@ -83,13 +101,19 @@ class BaseLoader:
         if not self.encoding:
             self.encoding = detect_encoding(data_or_path=self.tmpfile)
         # load options
+        # - csv
         self.load_options.setdefault("csv_sep", ",")
+        # - html
         self.load_options.setdefault("html_exclude_tags", ("script", "style"))
         self.load_options.setdefault("html_remove_blank_text", True)
-        self.load_options.setdefault("pdf_dpi", 300)
+        # - pdf
+        self.load_options.setdefault("pdf_max_workers", 0)  # for basic (pymupdf)
+        self.load_options.setdefault("pdf_keep_page_image", False)  # for basic (pymupdf)
+        self.load_options.setdefault("pdf_keep_emdb_image", False)  # for basic (pymupdf)
+        self.load_options.setdefault("pdf_dpi", 300)  # for basic (pymupdf)
+        # - public
         self.load_options.setdefault("image_fmt", "path")
         self.load_options.setdefault("table_fmt", "html")
-        self.load_options.setdefault("max_workers", None)  # for pdf
 
     @staticmethod
     def is_file_empty(file_path) -> bool:

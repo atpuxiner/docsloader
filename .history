@@ -1,5 +1,8 @@
 # history
 
+## v0.0.6
+- chg@增加pdfplumber提取&优化参数
+
 ## v0.0.5
 - opt@代码优化
 - opt@pdf并发处理

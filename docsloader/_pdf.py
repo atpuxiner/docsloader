@@ -6,10 +6,11 @@ from typing import AsyncGenerator, Generator
 
 import fitz
 import numpy as np
+import pdfplumber
 from toollib.kvalue import KValue
 
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_image
+from docsloader.utils import format_image, format_table
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +18,33 @@ logger = logging.getLogger(__name__)
 class PdfLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
+        pdf_max_workers = self.load_options.get("pdf_max_workers")
+        pdf_keep_page_image = self.load_options.get("pdf_keep_page_image")
+        pdf_keep_emdb_image = self.load_options.get("pdf_keep_emdb_image")
         pdf_dpi = self.load_options.get("pdf_dpi")
         image_fmt = self.load_options.get("image_fmt")
-        max_workers = self.load_options.get("max_workers")
         for item in self.extract_by_pymupdf(
                 filepath=self.tmpfile,
+                max_workers=pdf_max_workers,
+                keep_page_image=pdf_keep_page_image,
+                keep_emdb_image=pdf_keep_emdb_image,
                 dpi=pdf_dpi,
                 image_fmt=image_fmt,
-                max_workers=max_workers,
         ):
+            self.metadata.update({
+                "page": item.get("page"),
+                "page_total": item.get("page_total"),
+                "page_path": item.get("page_path"),
+            })
+            yield DocsData(
+                type=item.get("type"),
+                text=item.get("text"),
+                data=item.get("data"),
+                metadata=self.metadata,
+            )
+
+    async def load_by_pdfplumber(self) -> AsyncGenerator[DocsData, None]:
+        for item in self.extract_by_pdfplumber(filepath=self.tmpfile):
             self.metadata.update({
                 "page": item.get("page"),
                 "page_total": item.get("page_total"),
@@ -41,9 +60,12 @@ class PdfLoader(BaseLoader):
     def extract_by_pymupdf(
             self,
             filepath: str,
+            max_workers: int | None = 0,
+            keep_page_image: bool = False,
+            keep_emdb_image: bool = False,
             dpi: int = 300,
             image_fmt: str = "path",
-            max_workers: int = None,
+
     ) -> Generator[dict, None, None]:
         tmpdir = self.mk_tmpdir()
         if max_workers == 0:
@@ -55,6 +77,8 @@ class PdfLoader(BaseLoader):
                             page_idx=page_idx,
                             page_total=page_total,
                             tmpdir=tmpdir,
+                            keep_page_image=keep_page_image,
+                            keep_emdb_image=keep_emdb_image,
                             dpi=dpi,
                             image_fmt=image_fmt,
                     ):
@@ -71,6 +95,8 @@ class PdfLoader(BaseLoader):
                     "page_idx": page_idx,
                     "page_total": page_total,
                     "tmpdir": tmpdir,
+                    "keep_page_image": keep_page_image,
+                    "keep_emdb_image": keep_emdb_image,
                     "dpi": dpi,
                     "image_fmt": image_fmt,
                     "kvfile": kv.file,
@@ -92,6 +118,8 @@ class PdfLoader(BaseLoader):
             page_idx: int,
             page_total: int,
             tmpdir: str,
+            keep_page_image: bool,
+            keep_emdb_image: bool,
             dpi: int,
             image_fmt: str,
             kvfile: str,
@@ -104,6 +132,8 @@ class PdfLoader(BaseLoader):
                     page_idx=page_idx,
                     page_total=page_total,
                     tmpdir=tmpdir,
+                    keep_page_image=keep_page_image,
+                    keep_emdb_image=keep_emdb_image,
                     dpi=dpi,
                     image_fmt=image_fmt,
             ):
@@ -119,21 +149,27 @@ class PdfLoader(BaseLoader):
             page_idx: int,
             page_total: int,
             tmpdir: str,
+            keep_page_image: bool,
+            keep_emdb_image: bool,
             dpi: int,
             image_fmt: str,
     ) -> Generator[dict, None, None]:
         page = doc.load_page(page_idx)
-        page_pix = page.get_pixmap(dpi=dpi, alpha=False)
-        ext = "png" if page_pix.alpha else "jpg"
-        page_path = os.path.join(tmpdir, f"image_{page_idx}.{ext}")
-        try:
-            page_pix.save(page_path)
-        except Exception as e:
-            page_path = None
-            logger.error(f"Failed to save image: {e}")
-        finally:
-            if 'page_pix' in locals():
-                del page_pix
+        page_num = page_idx + 1
+        page_path = None
+        if keep_page_image:
+            page_pix = page.get_pixmap(dpi=dpi, alpha=False)
+            ext = "png" if page_pix.alpha else "jpg"
+            page_path = os.path.join(tmpdir, f"image_{page_idx}.{ext}")
+            try:
+                page_pix.save(page_path)
+            except Exception as e:
+                self.rm_file(page_path)
+                page_path = None
+                logger.error(f"Failed to save image: {e}")
+            finally:
+                if 'page_pix' in locals():
+                    del page_pix
         if self._is_two_column(page):
             page_text = self._extract_adaptive_columns(page)
         else:
@@ -142,35 +178,36 @@ class PdfLoader(BaseLoader):
             yield {
                 "type": "text",
                 "text": page_text,
-                "page": page_idx + 1,
+                "page": page_num,
                 "page_total": page_total,
                 "page_path": page_path,
             }
-        # image
-        for img_idx, img in enumerate(page.get_images(full=True)):
-            xref = img[0]
-            pix = fitz.Pixmap(doc, xref)
-            if pix.colorspace not in (fitz.csGRAY, fitz.csRGB, fitz.csCMYK):
-                pix = fitz.Pixmap(fitz.csRGB, pix)
-                ext = "png"
-            else:
-                ext = "png" if pix.alpha else "jpg"
-            image_path = os.path.join(tmpdir, f"image_{page_idx}-{img_idx}.{ext}")
-            try:
-                pix.save(image_path)
-                yield {
-                    "type": "image",
-                    "text": format_image(image_path, fmt=image_fmt),  # noqa
-                    "data": image_path,
-                    "page": page_idx + 1,
-                    "page_total": page_total,
-                    "page_path": page_path,
-                }
-            except Exception as e:
-                logger.error(f"Failed to save image: {e}")
-            finally:
-                if 'pix' in locals():
-                    del pix
+        if keep_emdb_image:
+            for img_idx, img in enumerate(page.get_images(full=True)):
+                xref = img[0]
+                pix = fitz.Pixmap(doc, xref)
+                if pix.colorspace not in (fitz.csGRAY, fitz.csRGB, fitz.csCMYK):
+                    pix = fitz.Pixmap(fitz.csRGB, pix)
+                    ext = "png"
+                else:
+                    ext = "png" if pix.alpha else "jpg"
+                image_path = os.path.join(tmpdir, f"image_{page_idx}-{img_idx}.{ext}")
+                try:
+                    pix.save(image_path)
+                    yield {
+                        "type": "image",
+                        "text": format_image(image_path, fmt=image_fmt),  # noqa
+                        "data": image_path,
+                        "page": page_num,
+                        "page_total": page_total,
+                        "page_path": page_path,
+                    }
+                except Exception as e:
+                    self.rm_file(image_path)
+                    logger.error(f"Failed to save image: {e}")
+                finally:
+                    if 'pix' in locals():
+                        del pix
 
     @staticmethod
     def _is_two_column(page, margin_threshold=0.1) -> bool:
@@ -207,3 +244,32 @@ class PdfLoader(BaseLoader):
             else:
                 right_col.append(b[4])
         return "\n".join(left_col + right_col)
+
+    @staticmethod
+    def extract_by_pdfplumber(
+            filepath: str,
+    ) -> Generator[dict, None, None]:
+        with pdfplumber.open(filepath) as pdf:
+            page_total = len(pdf.pages)
+            for page in pdf.pages:
+                page_num = page.page_number
+                page_path = None
+                text = page.extract_text()
+                if text and text.strip():
+                    yield {
+                        "type": "text",
+                        "text": text,
+                        "page": page_num,
+                        "page_total": page_total,
+                        "page_path": page_path,
+                    }
+                tables = page.extract_tables()
+                for table_data in tables:
+                    yield {
+                        "type": "table",
+                        "text": format_table(table_data),
+                        "data": table_data,
+                        "page": page_num,
+                        "page_total": page_total,
+                        "page_path": page_path,
+                    }

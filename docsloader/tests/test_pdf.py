@@ -17,10 +17,15 @@ class TestPdfLoader(unittest.IsolatedAsyncioTestCase):
         self.loader = PdfLoader(
             path_or_url=self.path_or_url,
             rm_tmpfile=False,
+            # load_type="pdfplumber"
         )
 
     async def test_load(self):
-        async for item in self.loader.load():
+        async for item in self.loader.load(
+                # pdf_max_workers=None,
+                # keep_page_image=True,
+                # keep_emdb_image=True,
+        ):
             logger.info(item)
 
 
