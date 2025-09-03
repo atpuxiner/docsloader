@@ -1,5 +1,9 @@
 # history
 
+## v0.0.7
+- chg@参数优化
+- fix@pdf并发返回结果顺序
+
 ## v0.0.6
 - chg@增加pdfplumber提取&优化参数
 

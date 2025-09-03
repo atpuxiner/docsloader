@@ -18,7 +18,7 @@ from ._docx import DocxLoader
 from ._pdf import PdfLoader
 from ._img import ImgLoader
 
-__version__ = "0.0.6"
+__version__ = "0.0.7"
 
 __all__ = [
     "TxtLoader",

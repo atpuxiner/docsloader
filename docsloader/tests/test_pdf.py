@@ -22,9 +22,9 @@ class TestPdfLoader(unittest.IsolatedAsyncioTestCase):
 
     async def test_load(self):
         async for item in self.loader.load(
-                # pdf_max_workers=None,
-                # keep_page_image=True,
-                # keep_emdb_image=True,
+                # pdf_keep_page_image=True,
+                # pdf_keep_emdb_image=True,
+                # max_workers=None,
         ):
             logger.info(item)
 

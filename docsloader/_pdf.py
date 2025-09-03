@@ -88,6 +88,7 @@ class PdfLoader(BaseLoader):
         max_workers = max_workers or cpu_count()
         with fitz.open(filepath) as doc:
             page_total = len(doc)
+        results, next_page_idx = {}, 0
         with ProcessPoolExecutor(max_workers=max_workers) as executor:
             futures = [
                 executor.submit(self._process_and_save_page, **{
@@ -104,11 +105,12 @@ class PdfLoader(BaseLoader):
                 for page_idx in range(page_total)
             ]
             for future in as_completed(futures):
-                try:
-                    for key in future.result() or []:
+                page_idx, data = future.result()
+                results[page_idx] = data
+                while next_page_idx in results:
+                    for key in results.pop(next_page_idx):
                         yield kv.get(key)
-                except Exception as e:
-                    logger.error(f"Task failed: {e}")
+                    next_page_idx += 1
         kv.remove()
         self.rm_empty_dir(tmpdir)
 
@@ -123,7 +125,7 @@ class PdfLoader(BaseLoader):
             dpi: int,
             image_fmt: str,
             kvfile: str,
-    ) -> list:
+    ) -> tuple[int, list]:
         kv = KValue(file=kvfile)
         with fitz.open(filepath) as doc:
             data, idx = [], 0
@@ -141,7 +143,7 @@ class PdfLoader(BaseLoader):
                 kv.set(key, item)
                 data.append(key)
                 idx += 1
-            return data
+            return page_idx, data
 
     def _process_page(
             self,
