@@ -58,10 +58,10 @@ class BaseLoader:
             - csv_sep: str, [csv]分隔符，默认 ‘,’
             - html_exclude_tags: tuple, [html]排除标签，默认 ("script", "style")
             - html_remove_blank_text: bool, [html]移除空白文本，默认 True
-            - pdf_max_workers: int | None, [pdf]最大工作数，默认 0，注意：0-表线程同步，None-表取cpu核数
             - pdf_keep_page_image: bool, [pdf]保留页面图片，默认 False
             - pdf_keep_emdb_image: bool, [pdf]保留嵌入图片，默认 False
             - pdf_dpi: int, [pdf]每英寸点数，默认 300
+            - max_workers: int | None, [public]最大工作数，默认 0，注意：0-表线程同步，None-表取cpu核数
             - image_fmt: Literal["path", "base64"], [public]图片格式，默认 path
             - table_fmt： Literal["html", "md"], [public]表格格式，默认 html
         :return:
@@ -107,11 +107,11 @@ class BaseLoader:
         self.load_options.setdefault("html_exclude_tags", ("script", "style"))
         self.load_options.setdefault("html_remove_blank_text", True)
         # - pdf
-        self.load_options.setdefault("pdf_max_workers", 0)  # for basic (pymupdf)
         self.load_options.setdefault("pdf_keep_page_image", False)  # for basic (pymupdf)
         self.load_options.setdefault("pdf_keep_emdb_image", False)  # for basic (pymupdf)
         self.load_options.setdefault("pdf_dpi", 300)  # for basic (pymupdf)
         # - public
+        self.load_options.setdefault("max_workers", 0)  # 目前：pymupdf
         self.load_options.setdefault("image_fmt", "path")
         self.load_options.setdefault("table_fmt", "html")
 

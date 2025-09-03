@@ -18,17 +18,17 @@ logger = logging.getLogger(__name__)
 class PdfLoader(BaseLoader):
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
-        pdf_max_workers = self.load_options.get("pdf_max_workers")
         pdf_keep_page_image = self.load_options.get("pdf_keep_page_image")
         pdf_keep_emdb_image = self.load_options.get("pdf_keep_emdb_image")
         pdf_dpi = self.load_options.get("pdf_dpi")
+        max_workers = self.load_options.get("max_workers")
         image_fmt = self.load_options.get("image_fmt")
         for item in self.extract_by_pymupdf(
                 filepath=self.tmpfile,
-                max_workers=pdf_max_workers,
                 keep_page_image=pdf_keep_page_image,
                 keep_emdb_image=pdf_keep_emdb_image,
                 dpi=pdf_dpi,
+                max_workers=max_workers,
                 image_fmt=image_fmt,
         ):
             self.metadata.update({
@@ -60,10 +60,10 @@ class PdfLoader(BaseLoader):
     def extract_by_pymupdf(
             self,
             filepath: str,
-            max_workers: int | None = 0,
             keep_page_image: bool = False,
             keep_emdb_image: bool = False,
             dpi: int = 300,
+            max_workers: int | None = 0,
             image_fmt: str = "path",
 
     ) -> Generator[dict, None, None]:
@@ -174,14 +174,13 @@ class PdfLoader(BaseLoader):
             page_text = self._extract_adaptive_columns(page)
         else:
             page_text = page.get_text("text")
-        if page_text.strip():
-            yield {
-                "type": "text",
-                "text": page_text,
-                "page": page_num,
-                "page_total": page_total,
-                "page_path": page_path,
-            }
+        yield {
+            "type": "text",
+            "text": page_text,
+            "page": page_num,
+            "page_total": page_total,
+            "page_path": page_path,
+        }
         if keep_emdb_image:
             for img_idx, img in enumerate(page.get_images(full=True)):
                 xref = img[0]
@@ -255,16 +254,14 @@ class PdfLoader(BaseLoader):
                 page_num = page.page_number
                 page_path = None
                 text = page.extract_text()
-                if text and text.strip():
-                    yield {
-                        "type": "text",
-                        "text": text,
-                        "page": page_num,
-                        "page_total": page_total,
-                        "page_path": page_path,
-                    }
-                tables = page.extract_tables()
-                for table_data in tables:
+                yield {
+                    "type": "text",
+                    "text": text,
+                    "page": page_num,
+                    "page_total": page_total,
+                    "page_path": page_path,
+                }
+                for table_data in page.extract_tables():
                     yield {
                         "type": "table",
                         "text": format_table(table_data),
