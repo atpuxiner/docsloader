@@ -35,7 +35,7 @@ class BaseLoader:
             load_type: str = "basic",
             load_options: dict = None,
             metadata: dict = None,
-            rm_tmpfile: bool = False
+            rm_tmpfile: bool = False,
     ):
         self.path_or_url = path_or_url
         self.suffix = suffix

@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 
 
 class PdfLoader(BaseLoader):
+    """
+    pdf loader
+
+    params:
+        - path_or_url: str
+        - suffix: str = None
+        - encoding: str = None
+        - load_type: str = "basic"
+        - load_options: dict = None
+        - metadata: dict = None
+        - rm_tmpfile: bool = False
+    """
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         pdf_keep_page_image = self.load_options.get("pdf_keep_page_image")

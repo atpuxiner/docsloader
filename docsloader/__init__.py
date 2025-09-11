@@ -6,19 +6,10 @@
 @description
 @history
 """
-import os
+import importlib
+from typing import TYPE_CHECKING
 
-from ._txt import TxtLoader
-from ._csv import CsvLoader
-from ._md import MdLoader
-from ._html import HtmlLoader
-from ._xlsx import XlsxLoader
-from ._pptx import PptxLoader
-from ._docx import DocxLoader
-from ._pdf import PdfLoader
-from ._img import ImgLoader
-
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 __all__ = [
     "TxtLoader",
@@ -33,69 +24,21 @@ __all__ = [
     "AutoLoader",
 ]
 
-_SUFFIX_TO_MODEL = {
-    ".txt": "_txt",
-    ".csv": "_csv",
-    ".md": "_md",
-    ".html": "_html",
-    ".htm": "_html",
-    ".xlsx": "_xlsx",
-    ".xls": "_xlsx",
-    ".pptx": "_pptx",
-    ".ppt": "_pptx",
-    ".docx": "_docx",
-    ".doc": "_docx",
-    ".pdf": "_pdf",
-    ".jpg": "_img",
-    ".jpeg": "_img",
-    ".png": "_img",
-}
+if TYPE_CHECKING:
+    from docsloader._txt import TxtLoader
+    from docsloader._csv import CsvLoader
+    from docsloader._md import MdLoader
+    from docsloader._html import HtmlLoader
+    from docsloader._xlsx import XlsxLoader
+    from docsloader._pptx import PptxLoader
+    from docsloader._docx import DocxLoader
+    from docsloader._pdf import PdfLoader
+    from docsloader._img import ImgLoader
+    from docsloader._auto import AutoLoader
 
 
-class AutoLoader:
-    """
-    auto loader
-    """
-
-    def __new__(
-            cls,
-            path_or_url: str,
-            suffix: str = None,
-            encoding: str = None,
-            load_type: str = "basic",
-            load_options: dict = None,
-            metadata: dict = None,
-            rm_tmpfile: bool = False,
-    ):
-        """自动根据 suffix 返回对应的 Loader 实例"""
-        if suffix is None:
-            _, suffix = os.path.splitext(path_or_url)
-            if not suffix:
-                raise ValueError("无法从`path_or_url`推断文件后缀，请显式指定`suffix`")
-        else:
-            if not suffix.startswith('.'):
-                suffix = f".{suffix}"
-        suffix = suffix.lower()
-        loader_class = cls._get_loader_class(suffix)
-        return loader_class(
-            path_or_url=path_or_url,
-            suffix=suffix,
-            encoding=encoding,
-            load_type=load_type,
-            load_options=load_options,
-            metadata=metadata,
-            rm_tmpfile=rm_tmpfile,
-        )
-
-    @staticmethod
-    def _get_loader_class(suffix: str):
-        """get loader class"""
-        if suffix not in _SUFFIX_TO_MODEL:
-            raise ValueError(f"不支持的文件后缀: {suffix}")
-        model_name = _SUFFIX_TO_MODEL[suffix]
-        class_name = f"{model_name.replace('_', '').title()}Loader"
-        loader_class = getattr(
-            __import__(f"docsloader.{model_name}", fromlist=[model_name]),
-            class_name
-        )
-        return loader_class
+def __getattr__(name):
+    if name in __all__:
+        module = importlib.import_module(f"docsloader._{name.replace('Loader', '').lower()}")
+        return getattr(module, name)
+    raise AttributeError(f"ImportError: cannot import name '{name}' from 'docsloader'")

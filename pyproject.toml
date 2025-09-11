@@ -20,6 +20,45 @@ dynamic = [
     "dependencies",
 ]
 
+[project.optional-dependencies]
+txt = []
+csv = []
+md = []
+html = [
+    "lxml==6.0.1",
+]
+xlsx = [
+    "openpyxl==3.1.5",
+    "xlrd==2.0.2",
+]
+pptx = [
+    "python-pptx==1.0.2",
+]
+docx = [
+    "python-docx==1.2.0",
+]
+pdf = [
+    "pymupdf==1.26.4",
+    "pdfplumber==0.11.7",
+]
+img = [
+    "rapidocr-onnxruntime==1.4.4",
+]
+auto = [
+    "docsloader[txt]",
+    "docsloader[csv]",
+    "docsloader[md]",
+    "docsloader[html]",
+    "docsloader[xlsx]",
+    "docsloader[pptx]",
+    "docsloader[docx]",
+    "docsloader[pdf]",
+    "docsloader[img]",
+]
+all = [
+    "docsloader[auto]",
+]
+
 # tool
 [tool.setuptools.dynamic]
 version = { attr = "docsloader.__version__" }

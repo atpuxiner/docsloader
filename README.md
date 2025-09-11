@@ -11,6 +11,18 @@
 This package can be installed using pip (Python>=3.11):
 > pip install docsloader
 
+- if you want to install all dependencies: `pip install docsloader[all]`
+- if you want to install specific dependencies:
+    - txt: `pip install docsloader[txt]`
+    - csv: `pip install docsloader[csv]`
+    - md: `pip install docsloader[md]`
+    - xlsx: `pip install docsloader[xlsx]`
+    - pptx: `pip install docsloader[pptx]`
+    - docx: `pip install docsloader[docx]`
+    - pdf: `pip install docsloader[pdf]`
+    - img: `pip install docsloader[img]`
+    - auto: `pip install docsloader[auto]`
+
 ## Usage
 
 The `docsloader` package provides asynchronous document loaders for various file suffixes. It includes dedicated loaders

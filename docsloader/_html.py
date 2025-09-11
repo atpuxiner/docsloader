@@ -9,6 +9,18 @@ logger = logging.getLogger(__name__)
 
 
 class HtmlLoader(BaseLoader):
+    """
+    html loader
+
+    params:
+        - path_or_url: str
+        - suffix: str = None
+        - encoding: str = None
+        - load_type: str = "basic"
+        - load_options: dict = None
+        - metadata: dict = None
+        - rm_tmpfile: bool = False
+    """
 
     async def load_by_basic(self) -> AsyncGenerator[DocsData, None]:
         html_exclude_tags = self.load_options.get("html_exclude_tags")
