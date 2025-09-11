@@ -2,6 +2,7 @@ import base64
 import logging
 import os
 import platform
+import shutil
 import time
 from pathlib import Path
 from typing import Literal
@@ -120,7 +121,7 @@ def office_cvt_openxml(filepath: str, file_suffix: str = None) -> str:
     }[to_suffix]
     if _system_name.startswith("win"):
         with tempfile.NamedTemporaryFile(suffix=to_suffix, delete=False) as tmp_file:
-            new_filepath = tmp_file.name
+            cvt_filepath = tmp_file.name
         app_info = {
             ".xls": {
                 "dispatch_names": ("Ket.Application", "et.Application", "Excel.Application"),
@@ -150,14 +151,14 @@ def office_cvt_openxml(filepath: str, file_suffix: str = None) -> str:
                         pass
                 app = None
         if not app:
-            if new_filepath and os.path.isfile(new_filepath):
-                os.remove(new_filepath)
-            raise RuntimeError(f"无法识别转换应用，请安装 MS Office 或 WPS Office")
+            if cvt_filepath and os.path.isfile(cvt_filepath):
+                os.remove(cvt_filepath)
+            raise EnvironmentError(f"无法识别转换应用，请安装 MS Office 或 WPS Office")
         try:
             worker = getattr(app, config["worker_name"])
             doc = worker.Open(filepath)
             time.sleep(0.2)
-            doc.SaveAs(new_filepath, FileFormat=file_format_id)
+            doc.SaveAs(cvt_filepath, FileFormat=file_format_id)
             doc.Close()
         finally:
             try:
@@ -165,6 +166,8 @@ def office_cvt_openxml(filepath: str, file_suffix: str = None) -> str:
             except:
                 pass
     else:
+        if not shutil.which("libreoffice"):
+            raise EnvironmentError("Cannot find libreoffice command. Please install libreoffice and required fonts.")
         output_dir = os.path.dirname(filepath) or "."
         cmd = [
             "libreoffice",
@@ -174,5 +177,5 @@ def office_cvt_openxml(filepath: str, file_suffix: str = None) -> str:
             filepath
         ]
         subprocess.run(cmd, check=True, capture_output=True)
-        new_filepath = os.path.splitext(filepath)[0] + to_suffix
-    return new_filepath
+        cvt_filepath = os.path.splitext(filepath)[0] + to_suffix
+    return cvt_filepath
