@@ -1,5 +1,8 @@
 # history
 
+## v0.0.9
+- fix@修复format_table
+
 ## v0.0.8
 - add@依赖可按需安装
 - opt@文件转换命令检测
