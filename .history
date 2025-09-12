@@ -2,6 +2,7 @@
 
 ## v0.0.9
 - fix@修复format_table
+- chg@增加忽略配置等
 
 ## v0.0.8
 - add@依赖可按需安装

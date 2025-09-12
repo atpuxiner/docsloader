@@ -140,3 +140,4 @@ cython_debug/
 # Append
 .idea
 .vscode
+*.log.[0-9]*

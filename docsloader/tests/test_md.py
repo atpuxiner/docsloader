@@ -4,7 +4,7 @@ from toollib.log import init_logger
 
 from docsloader import MdLoader
 
-logger = init_logger()
+logger = init_logger(__name__)
 
 
 class TestMdLoader(unittest.IsolatedAsyncioTestCase):
