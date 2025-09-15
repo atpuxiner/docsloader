@@ -20,8 +20,8 @@ class TesDocxLoader(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_load(self):
-        async for item in self.loader.load():
-            logger.info(item)
+        async for doc in self.loader.load():
+            logger.info(doc)
 
 
 if __name__ == "__main__":

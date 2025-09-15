@@ -76,7 +76,7 @@ def format_table(
     """format table"""
     if not table:
         return ""
-    if isinstance(table[0], str) or table[0] is None:
+    if not all(isinstance(item, list) for item in table):
         if fmt == 'md':
             return "| " + " | ".join(map(str, table)) + " |"
         else:

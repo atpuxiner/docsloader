@@ -21,12 +21,12 @@ class TestPdfLoader(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_load(self):
-        async for item in self.loader.load(
+        async for doc in self.loader.load(
                 # pdf_keep_page_image=True,
                 # pdf_keep_emdb_image=True,
                 # max_workers=None,
         ):
-            logger.info(item)
+            logger.info(doc)
 
 
 if __name__ == "__main__":

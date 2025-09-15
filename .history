@@ -1,5 +1,8 @@
 # history
 
+## v0.0.10
+- fix@表格格式化
+
 ## v0.0.9
 - fix@修复format_table
 - chg@增加忽略配置等
