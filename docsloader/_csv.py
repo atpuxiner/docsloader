@@ -2,8 +2,8 @@ import csv
 import logging
 from typing import AsyncGenerator
 
+from docsloader import utils
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_table
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class CsvLoader(BaseLoader):
                 row = (row + [None] * (header_len - len(row)))[:header_len]
                 yield DocsData(
                     type="text",
-                    text=format_table(row, fmt=table_fmt),
+                    text=utils.format_table(row, fmt=table_fmt),
                     data=row,
                     metadata=self.metadata,
                 )

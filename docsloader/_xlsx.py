@@ -5,8 +5,8 @@ from typing import AsyncGenerator
 import xlrd
 from openpyxl.reader.excel import load_workbook
 
+from docsloader import utils
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_table
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class XlsxLoader(BaseLoader):
                     row = list(row)
                     yield DocsData(
                         type="text",
-                        text=format_table(row),
+                        text=utils.format_table(row),
                         data=row,
                         metadata=self.metadata,
                     )
@@ -77,7 +77,7 @@ class XlsxLoader(BaseLoader):
                         row = sheet.row_values(idx)
                         yield DocsData(
                             type="text",
-                            text=format_table(row, fmt=table_fmt),
+                            text=utils.format_table(row, fmt=table_fmt),
                             data=row,
                             metadata=self.metadata,
                         )

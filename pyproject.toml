@@ -39,8 +39,7 @@ docx = [
 ]
 pdf = [
     "pymupdf==1.26.4",
-    "numpy==2.3.3",
-    "pdfplumber==0.11.7",
+    "numpy",
 ]
 img = [
     "rapidocr-onnxruntime==1.4.4",

@@ -9,7 +9,7 @@
 import importlib
 from typing import TYPE_CHECKING
 
-__version__ = "0.0.11"
+__version__ = "0.0.12"
 
 __all__ = [
     "TxtLoader",

@@ -1,14 +1,12 @@
 import logging
 import os
-import shutil
-import tempfile
 from typing import AsyncGenerator, Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
 from toollib.codec import detect_encoding
 
-from docsloader.utils import download_to_tmpfile
+from docsloader import utils
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +69,7 @@ class BaseLoader:
         if method := getattr(self, f"load_by_{load_type}", None):
             try:
                 await self.setup()
-                if self.is_file_empty(self.tmpfile):
+                if utils.is_empty_file(self.tmpfile):
                     logger.warning(f"File is empty({self.path_or_url}): {self.tmpfile}")
                     yield DocsData(type="empty")
                     return
@@ -83,7 +81,7 @@ class BaseLoader:
                     idx += 1
             finally:
                 if self.rm_tmpfile:
-                    self.rm_file(self.tmpfile)
+                    utils.rm_file(self.tmpfile)
         else:
             raise ValueError(f"Unsupported load type: {load_type}")
 
@@ -97,7 +95,7 @@ class BaseLoader:
         res = urlparse(self.path_or_url)
         if all([res.scheme, res.netloc]):  # url
             logger.info(f"downloading {self.path_or_url} to tmpfile")
-            self.tmpfile = await download_to_tmpfile(url=self.path_or_url, suffix=self.suffix)
+            self.tmpfile = await utils.download_to_tmpfile(url=self.path_or_url, suffix=self.suffix)
         if not self.encoding:
             self.encoding = detect_encoding(data_or_path=self.tmpfile)
         # load options
@@ -110,36 +108,13 @@ class BaseLoader:
         self.load_options.setdefault("pdf_keep_page_image", False)  # for basic (pymupdf)
         self.load_options.setdefault("pdf_keep_emdb_image", False)  # for basic (pymupdf)
         self.load_options.setdefault("pdf_dpi", 300)  # for basic (pymupdf)
+        # - img
+        self.load_options.setdefault("img_preprocess", None)
+        self.load_options.setdefault("img_tesseract_cmd", None)  # for tesseract
+        self.load_options.setdefault("img_lang", None)  # for tesseract
+        self.load_options.setdefault("img_config", '')  # for tesseract
+        self.load_options.setdefault("img_nice", 0)  # for tesseract
         # - public
-        self.load_options.setdefault("max_workers", 0)  # 目前：pymupdf
+        self.load_options.setdefault("max_workers", 0)  # supported：pdf-pymupdf
         self.load_options.setdefault("image_fmt", "path")
         self.load_options.setdefault("table_fmt", "html")
-
-    @staticmethod
-    def is_file_empty(file_path) -> bool:
-        return os.path.getsize(file_path) == 0
-
-    @staticmethod
-    def rm_file(filepath: str):
-        """删除文件"""
-        if filepath and os.path.isfile(filepath):
-            os.remove(filepath)
-
-    @staticmethod
-    def rm_dir(dirpath: str):
-        """删除目录"""
-        if dirpath and os.path.isdir(dirpath):
-            shutil.rmtree(dirpath)
-
-    @staticmethod
-    def mk_tmpdir() -> str:
-        """创建临时目录"""
-        return tempfile.mkdtemp()
-
-    @staticmethod
-    def rm_empty_dir(dirpath: str):
-        """删除空目录"""
-        if dirpath and os.path.isdir(dirpath):
-            with os.scandir(dirpath) as entries:
-                if not next(entries, None):
-                    os.rmdir(dirpath)

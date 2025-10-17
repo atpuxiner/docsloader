@@ -7,8 +7,8 @@ from docx import Document as DocxDocument
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from docsloader import utils
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_table, format_image, office_cvt_openxml
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class DocxLoader(BaseLoader):
         table_fmt = self.load_options.get("table_fmt")
         tmpfile_cvt = None
         if self.suffix == ".doc":
-            tmpfile_cvt = office_cvt_openxml(filepath=self.tmpfile, file_suffix=self.suffix)
+            tmpfile_cvt = utils.office_cvt_openxml(filepath=self.tmpfile, file_suffix=self.suffix)
         for item in self.extract_by_python_docx(
                 filepath=tmpfile_cvt or self.tmpfile,
                 image_fmt=image_fmt,
@@ -45,7 +45,7 @@ class DocxLoader(BaseLoader):
                 metadata=self.metadata,
             )
         if tmpfile_cvt:
-            self.rm_file(filepath=tmpfile_cvt)
+            utils.rm_file(filepath=tmpfile_cvt)
 
     def extract_by_python_docx(
             self,
@@ -53,7 +53,7 @@ class DocxLoader(BaseLoader):
             image_fmt: str = "path",
             table_fmt: str = "html"
     ) -> dict:
-        tmpdir = self.mk_tmpdir()
+        tmpdir = utils.mk_tmpdir()
         image_map = {}  # relId -> local image path
         image_counter = 1
         try:
@@ -67,7 +67,7 @@ class DocxLoader(BaseLoader):
                         # relId map
                         image_map[file_info.filename] = image_path
                         image_counter += 1
-            self.rm_empty_dir(tmpdir)
+            utils.rm_empty_dir(tmpdir)
         except Exception as e:
             logger.error(f"extracting the image failed: {e}")
         doc = DocxDocument(filepath)
@@ -115,7 +115,7 @@ class DocxLoader(BaseLoader):
                     for image_path in images_in_para:
                         yield {
                             "type": "image",
-                            "text": format_image(image_path, fmt=image_fmt),  # noqa
+                            "text": utils.format_image(image_path, fmt=image_fmt),  # noqa
                             "data": image_path
                         }
                 elif para_text:
@@ -134,6 +134,6 @@ class DocxLoader(BaseLoader):
                     table_data.append(row_data)
                 yield {
                     "type": "table",
-                    "text": format_table(table_data, fmt=table_fmt),  # noqa
+                    "text": utils.format_table(table_data, fmt=table_fmt),  # noqa
                     "data": table_data
                 }

@@ -4,8 +4,8 @@ from typing import AsyncGenerator, Generator
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 
+from docsloader import utils
 from docsloader.base import BaseLoader, DocsData
-from docsloader.utils import format_table, format_image, office_cvt_openxml
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ class PptxLoader(BaseLoader):
         table_fmt = self.load_options.get("table_fmt")
         tmpfile_cvt = None
         if self.suffix == ".ppt":
-            tmpfile_cvt = office_cvt_openxml(filepath=self.tmpfile, file_suffix=self.suffix)
+            tmpfile_cvt = utils.office_cvt_openxml(filepath=self.tmpfile, file_suffix=self.suffix)
         for item in self.extract_by_python_pptx(
                 filepath=tmpfile_cvt or self.tmpfile,
                 image_fmt=image_fmt,
@@ -46,7 +46,7 @@ class PptxLoader(BaseLoader):
                 metadata=self.metadata,
             )
         if tmpfile_cvt:
-            self.rm_file(filepath=tmpfile_cvt)
+            utils.rm_file(filepath=tmpfile_cvt)
 
     def extract_by_python_pptx(
             self,
@@ -54,7 +54,7 @@ class PptxLoader(BaseLoader):
             image_fmt: str,
             table_fmt: str,
     ) -> Generator[dict, None, None]:
-        tmpdir = self.mk_tmpdir()
+        tmpdir = utils.mk_tmpdir()
         presentation = Presentation(filepath)
         page_total = len(presentation.slides)
         for slide_idx, slide in enumerate(presentation.slides):
@@ -88,7 +88,7 @@ class PptxLoader(BaseLoader):
                                 page_total=page_total,
                             )
                             yield group_extracted_data
-        self.rm_empty_dir(tmpdir)
+        utils.rm_empty_dir(tmpdir)
 
     @staticmethod
     def extract_shape(
@@ -120,14 +120,14 @@ class PptxLoader(BaseLoader):
                 f.write(image.blob)
             shape_data = {
                 "type": "image",
-                "text": format_image(image_path, fmt=image_fmt),  # noqa
+                "text": utils.format_image(image_path, fmt=image_fmt),  # noqa
                 "data": image_path,
             }
         elif shape.shape_type == MSO_SHAPE_TYPE.TABLE:
             table_title = shape.name if shape.name else "Table"
             table_data = [[cell.text.strip() for cell in row.cells] for row in shape.table.rows]
             shape_text += f"\n## {table_title}\n"
-            shape_text += format_table(table_data, fmt=table_fmt)  # noqa
+            shape_text += utils.format_table(table_data, fmt=table_fmt)  # noqa
             shape_data = {
                 "type": "table",
                 "text": shape_text,
