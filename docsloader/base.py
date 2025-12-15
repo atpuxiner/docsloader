@@ -4,7 +4,7 @@ from typing import AsyncGenerator, Any
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
-from toollib.codec import detect_encoding
+from toollib.utils import detect_encoding
 
 from docsloader import utils
 
